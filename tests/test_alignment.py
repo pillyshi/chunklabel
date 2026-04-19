@@ -36,6 +36,13 @@ def test_ordering_preserved() -> None:
     assert spans[0][0] < spans[1][0]
 
 
+def test_short_quote_exact_match() -> None:
+    raw = [RawChunk(category="x", quote="March")]
+    spans = align(raw, TEXT, threshold=80)
+    idx = TEXT.index("March")
+    assert spans[0] == (idx, idx + len("March"))
+
+
 def test_multiple_chunks() -> None:
     raw = [
         RawChunk(category="a", quote="The project kicked off in January with a small team"),
