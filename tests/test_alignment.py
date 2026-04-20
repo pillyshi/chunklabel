@@ -27,6 +27,24 @@ def test_below_threshold_raises() -> None:
         align(raw, TEXT, threshold=80)
 
 
+def test_skip_returns_none_for_unmatched() -> None:
+    raw = [RawChunk(category="x", quote="completely unrelated text that will never match")]
+    spans = align(raw, TEXT, threshold=80, on_error="skip")
+    assert spans == [None]
+
+
+def test_skip_preserves_other_chunks() -> None:
+    raw = [
+        RawChunk(category="a", quote="The project kicked off in January with a small team"),
+        RawChunk(category="x", quote="completely unrelated text that will never match"),
+        RawChunk(category="b", quote="the product launched successfully in June"),
+    ]
+    spans = align(raw, TEXT, threshold=80, on_error="skip")
+    assert spans[0] is not None
+    assert spans[1] is None
+    assert spans[2] is not None
+
+
 def test_ordering_preserved() -> None:
     raw = [
         RawChunk(category="a", quote="Budget constraints forced a scope reduction in March"),

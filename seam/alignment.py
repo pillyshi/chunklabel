@@ -1,3 +1,5 @@
+from typing import Literal
+
 from rapidfuzz import fuzz
 
 from seam.types import RawChunk
@@ -7,8 +9,13 @@ class AlignmentError(Exception):
     pass
 
 
-def align(raw_chunks: list[RawChunk], text: str, threshold: int) -> list[tuple[int, int]]:
-    spans: list[tuple[int, int]] = []
+def align(
+    raw_chunks: list[RawChunk],
+    text: str,
+    threshold: int,
+    on_error: Literal["raise", "skip"] = "raise",
+) -> list[tuple[int, int] | None]:
+    spans: list[tuple[int, int] | None] = []
     search_start = 0
 
     for chunk in raw_chunks:
@@ -31,10 +38,13 @@ def align(raw_chunks: list[RawChunk], text: str, threshold: int) -> list[tuple[i
                 best_start = i
 
         if best_score < threshold:
-            raise AlignmentError(
-                f"Could not align quote (score={best_score:.1f} < threshold={threshold}): "
-                f"{q!r}"
-            )
+            if on_error == "raise":
+                raise AlignmentError(
+                    f"Could not align quote (score={best_score:.1f} < threshold={threshold}): "
+                    f"{q!r}"
+                )
+            spans.append(None)
+            continue
 
         best_end = best_start + len(q)
         spans.append((best_start, best_end))

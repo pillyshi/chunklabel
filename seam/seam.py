@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from seam.alignment import align
 from seam.llm.base import LLMBackend
 from seam.postprocess import postprocess
@@ -11,6 +13,7 @@ class Seam:
         self,
         llm: object = None,
         fuzzy_threshold: int = 80,
+        on_align_error: Literal["raise", "skip"] = "raise",
         backend: LLMBackend | None = None,
     ) -> None:
         if backend is not None:
@@ -20,8 +23,9 @@ class Seam:
 
             self._backend = LangChainBackend(llm=llm)  # type: ignore[arg-type]
         self.fuzzy_threshold = fuzzy_threshold
+        self.on_align_error = on_align_error
 
     def split(self, text: str) -> list[Chunk]:
         raw_chunks = self._backend.extract_chunks(text)
-        spans = align(raw_chunks, text, self.fuzzy_threshold)
+        spans = align(raw_chunks, text, self.fuzzy_threshold, on_error=self.on_align_error)
         return postprocess(raw_chunks, spans, text)

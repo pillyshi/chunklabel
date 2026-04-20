@@ -2,10 +2,13 @@ from seam.types import Chunk, RawChunk
 
 
 def postprocess(
-    raw_chunks: list[RawChunk], spans: list[tuple[int, int]], text: str
+    raw_chunks: list[RawChunk], spans: list[tuple[int, int] | None], text: str
 ) -> list[Chunk]:
-    # Pair and sort by start position
-    paired = sorted(zip(spans, raw_chunks), key=lambda x: x[0][0])
+    # Pair and sort by start position, dropping unaligned chunks
+    paired = sorted(
+        [(span, raw) for span, raw in zip(spans, raw_chunks) if span is not None],
+        key=lambda x: x[0][0],
+    )
 
     # Resolve overlaps (earlier chunk wins)
     resolved: list[tuple[int, int, str]] = []
