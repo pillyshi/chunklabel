@@ -97,6 +97,34 @@ seam = Seam(
 )
 ```
 
+## Using local LLMs
+
+seam uses LangChain's `BaseChatModel` interface internally, so any compatible model can be passed via the `llm` parameter.
+
+**Ollama**
+
+```python
+from langchain_ollama import ChatOllama
+from seam import Seam
+
+seam = Seam(llm=ChatOllama(model="llama3"))
+```
+
+**llama.cpp (OpenAI-compatible server)**
+
+```python
+from langchain_openai import ChatOpenAI
+from seam import Seam
+
+seam = Seam(llm=ChatOpenAI(
+    model="llama3",
+    base_url="http://localhost:8080/v1",
+    api_key="not-used",
+))
+```
+
+Note: local models must support structured output (JSON mode). If `with_structured_output` is not reliable, wrap the model with a JSON-enforcing layer before passing it in.
+
 ## Downstream use cases
 
 The `Chunk` list produced by seam is designed as input for further analysis:
