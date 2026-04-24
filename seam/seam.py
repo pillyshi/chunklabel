@@ -14,6 +14,7 @@ class Seam:
         llm: object = None,
         fuzzy_threshold: int = 80,
         on_align_error: Literal["raise", "skip"] = "raise",
+        timeout: float | None = 120.0,
         backend: LLMBackend | None = None,
     ) -> None:
         if backend is not None:
@@ -21,7 +22,7 @@ class Seam:
         else:
             from seam.llm.langchain_backend import LangChainBackend
 
-            self._backend = LangChainBackend(llm=llm)  # type: ignore[arg-type]
+            self._backend = LangChainBackend(llm=llm, timeout=timeout)  # type: ignore[arg-type]
         self.fuzzy_threshold = fuzzy_threshold
         self.on_align_error = on_align_error
 

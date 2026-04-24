@@ -26,17 +26,19 @@ class _MappingSchema(BaseModel):
 
 
 class LangChainBackend(LLMBackend):
-    def __init__(self, llm: BaseChatModel | None = None) -> None:
+    def __init__(self, llm: BaseChatModel | None = None, timeout: float | None = 120.0) -> None:
         if llm is None:
             from langchain_openai import ChatOpenAI
 
             llm = ChatOpenAI(model="gpt-4o")
         self._llm = llm
+        self._timeout = timeout
 
     def extract_chunks(self, text: str) -> list[RawChunk]:
         structured: Any = self._llm.with_structured_output(_ChunkListSchema)
         result: _ChunkListSchema = structured.invoke(
-            [SystemMessage(content=SPLIT_SYSTEM), HumanMessage(content=text)]
+            [SystemMessage(content=SPLIT_SYSTEM), HumanMessage(content=text)],
+            config={"timeout": self._timeout},
         )
         return [RawChunk(category=c.category, quote=c.quote) for c in result.chunks]
 
@@ -44,6 +46,7 @@ class LangChainBackend(LLMBackend):
         prompt = f"{json.dumps(sorted(categories), indent=2)}"
         structured: Any = self._llm.with_structured_output(_MappingSchema)
         result: _MappingSchema = structured.invoke(
-            [SystemMessage(content=NORMALIZE_SYSTEM), HumanMessage(content=prompt)]
+            [SystemMessage(content=NORMALIZE_SYSTEM), HumanMessage(content=prompt)],
+            config={"timeout": self._timeout},
         )
         return result.mapping
