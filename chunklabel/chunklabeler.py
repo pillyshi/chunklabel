@@ -8,7 +8,7 @@ from chunklabel.postprocess import postprocess
 from chunklabel.types import Chunk
 
 
-class Seam:
+class ChunkLabeler:
     def __init__(
         self,
         llm: object = None,

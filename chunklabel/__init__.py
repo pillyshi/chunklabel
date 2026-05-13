@@ -1,5 +1,5 @@
 from chunklabel.normalizer import Normalizer
-from chunklabel.seam import Seam
+from chunklabel.chunklabeler import ChunkLabeler
 from chunklabel.types import Chunk, RawChunk
 
-__all__ = ["Seam", "Normalizer", "Chunk", "RawChunk"]
+__all__ = ["ChunkLabeler", "Normalizer", "Chunk", "RawChunk"]

@@ -7,10 +7,10 @@ A Python library for splitting text into categorized chunks using an LLM.
 chunklabel segments text into semantically coherent spans, assigning a free-form category to each. Categories are named by the LLM without a predefined schema. Each chunk's quote is a verbatim excerpt from the source text, aligned back to the original after LLM output.
 
 ```python
-from chunklabel import Seam
+from chunklabel import ChunkLabeler
 
-seam = Seam()
-chunks = seam.split(
+labeler = ChunkLabeler()
+chunks = labeler.split(
     "The project kicked off in January with a small team. "
     "Budget constraints forced a scope reduction in March. "
     "Despite the setbacks, the product launched successfully in June."
@@ -102,7 +102,7 @@ Normalization runs offline over the full category inventory, so the LLM can make
 ## Configuration
 
 ```python
-seam = Seam(
+labeler = ChunkLabeler(
     model="gpt-4o",          # LLM model to use
     fuzzy_threshold=80,      # Match threshold for rapidfuzz alignment (0–100)
 )
@@ -116,18 +116,18 @@ chunklabel uses LangChain's `BaseChatModel` interface internally, so any compati
 
 ```python
 from langchain_ollama import ChatOllama
-from chunklabel import Seam
+from chunklabel import ChunkLabeler
 
-seam = Seam(llm=ChatOllama(model="llama3"))
+labeler = ChunkLabeler(llm=ChatOllama(model="llama3"))
 ```
 
 **llama.cpp (OpenAI-compatible server)**
 
 ```python
 from langchain_openai import ChatOpenAI
-from chunklabel import Seam
+from chunklabel import ChunkLabeler
 
-seam = Seam(llm=ChatOpenAI(
+labeler = ChunkLabeler(llm=ChatOpenAI(
     model="llama3",
     base_url="http://localhost:8080/v1",
     api_key="not-used",
