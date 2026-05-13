@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "seam"
+name = "chunklabel"
 version = "0.1.5"
 description = "Split text into semantically coherent, LLM-categorized chunks"
 authors = ["pillyshi <h.tanaka36@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{ include = "seam" }]
+packages = [{ include = "chunklabel" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -25,6 +25,7 @@ optional = true
 pytest = "^8.0"
 mypy = "^1.0"
 ruff = "^0.4"
+twine = "^6.2.0"
 
 [build-system]
 requires = ["poetry-core"]

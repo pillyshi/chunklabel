@@ -1,6 +1,6 @@
-from seam.llm.base import LLMBackend
-from seam.seam import Seam
-from seam.types import Chunk, RawChunk
+from chunklabel.llm.base import LLMBackend
+from chunklabel.seam import Seam
+from chunklabel.types import Chunk, RawChunk
 
 TEXT = (
     "The project kicked off in January with a small team. "

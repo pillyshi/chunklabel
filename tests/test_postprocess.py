@@ -1,5 +1,5 @@
-from seam.postprocess import postprocess
-from seam.types import RawChunk
+from chunklabel.postprocess import postprocess
+from chunklabel.types import RawChunk
 
 TEXT = "abcdefghij"  # len=10
 

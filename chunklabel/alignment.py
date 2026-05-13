@@ -2,7 +2,7 @@ from typing import Literal
 
 from rapidfuzz import fuzz
 
-from seam.types import RawChunk
+from chunklabel.types import RawChunk
 
 
 class AlignmentError(Exception):

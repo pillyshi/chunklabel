@@ -4,8 +4,8 @@ import dataclasses
 import json
 from pathlib import Path
 
-from seam.llm.base import LLMBackend
-from seam.types import Chunk
+from chunklabel.llm.base import LLMBackend
+from chunklabel.types import Chunk
 
 
 class Normalizer:
@@ -14,7 +14,7 @@ class Normalizer:
         if backend is not None:
             self._backend = backend
         else:
-            from seam.llm.langchain_backend import LangChainBackend
+            from chunklabel.llm.langchain_backend import LangChainBackend
 
             self._backend = LangChainBackend()
 

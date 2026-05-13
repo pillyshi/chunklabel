@@ -3,8 +3,8 @@ import pytest
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from seam.normalizer import Normalizer
-from seam.types import Chunk
+from chunklabel.normalizer import Normalizer
+from chunklabel.types import Chunk
 
 
 def _chunk(category: str) -> Chunk:

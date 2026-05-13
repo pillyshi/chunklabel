@@ -7,9 +7,9 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel
 
-from seam.llm.base import LLMBackend
-from seam.llm.prompts import NORMALIZE_SYSTEM, SPLIT_SYSTEM
-from seam.types import RawChunk
+from chunklabel.llm.base import LLMBackend
+from chunklabel.llm.prompts import NORMALIZE_SYSTEM, SPLIT_SYSTEM
+from chunklabel.types import RawChunk
 
 
 class _RawChunkSchema(BaseModel):

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from seam.types import RawChunk
+from chunklabel.types import RawChunk
 
 
 class LLMBackend(ABC):

@@ -1,7 +1,7 @@
 import pytest
 
-from seam.alignment import AlignmentError, align
-from seam.types import RawChunk
+from chunklabel.alignment import AlignmentError, align
+from chunklabel.types import RawChunk
 
 TEXT = "The project kicked off in January with a small team. Budget constraints forced a scope reduction in March. Despite the setbacks, the product launched successfully in June."
 

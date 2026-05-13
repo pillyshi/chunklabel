@@ -1,4 +1,4 @@
-from seam.types import Chunk, RawChunk
+from chunklabel.types import Chunk, RawChunk
 
 
 def postprocess(

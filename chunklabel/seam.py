@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Literal
 
-from seam.alignment import align
-from seam.llm.base import LLMBackend
-from seam.postprocess import postprocess
-from seam.types import Chunk
+from chunklabel.alignment import align
+from chunklabel.llm.base import LLMBackend
+from chunklabel.postprocess import postprocess
+from chunklabel.types import Chunk
 
 
 class Seam:
@@ -20,7 +20,7 @@ class Seam:
         if backend is not None:
             self._backend = backend
         else:
-            from seam.llm.langchain_backend import LangChainBackend
+            from chunklabel.llm.langchain_backend import LangChainBackend
 
             self._backend = LangChainBackend(llm=llm, timeout=timeout)  # type: ignore[arg-type]
         self.fuzzy_threshold = fuzzy_threshold
