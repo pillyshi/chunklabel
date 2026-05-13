@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chunklabel"
-version = "0.1.5"
+version = "0.1.6"
 description = "Split text into semantically coherent, LLM-categorized chunks"
 authors = ["pillyshi <h.tanaka36@gmail.com>"]
 license = "MIT"
