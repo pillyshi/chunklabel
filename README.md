@@ -1,13 +1,13 @@
-# seam
+# chunklabel
 
 A Python library for splitting text into categorized chunks using an LLM.
 
 ## Overview
 
-seam segments text into semantically coherent spans, assigning a free-form category to each. Categories are named by the LLM without a predefined schema. Each chunk's quote is a verbatim excerpt from the source text, aligned back to the original after LLM output.
+chunklabel segments text into semantically coherent spans, assigning a free-form category to each. Categories are named by the LLM without a predefined schema. Each chunk's quote is a verbatim excerpt from the source text, aligned back to the original after LLM output.
 
 ```python
-from seam import Seam
+from chunklabel import Seam
 
 seam = Seam()
 chunks = seam.split(
@@ -26,7 +26,7 @@ chunks = seam.split(
 ## Installation
 
 ```bash
-pip install seam
+pip install chunklabel
 ```
 
 ## Data structures
@@ -77,13 +77,24 @@ Chunk list
 After processing multiple texts, category names can drift across runs. A dedicated normalization step lets the LLM consolidate them in batch.
 
 ```python
-from seam import Normalizer
+from chunklabel import Normalizer
 
 normalizer = Normalizer()
-mapping = normalizer.build_mapping(all_chunks)
+normalizer.build_mapping(all_chunks)
 # {"kick-off": "initiation", "project start": "initiation", "blocker": "obstacle", ...}
 
-normalized_chunks = normalizer.apply(all_chunks, mapping)
+normalized_chunks = normalizer.apply(all_chunks)
+```
+
+The mapping is stored internally after `build_mapping`, so it can be passed to `apply` implicitly. To reuse the mapping across runs without calling the LLM again:
+
+```python
+# Save after building
+normalizer.save("mapping.json")
+
+# Restore later
+normalizer = Normalizer.load("mapping.json")
+normalized_chunks = normalizer.apply(all_chunks)
 ```
 
 Normalization runs offline over the full category inventory, so the LLM can make globally consistent decisions rather than local ones.
@@ -99,13 +110,13 @@ seam = Seam(
 
 ## Using local LLMs
 
-seam uses LangChain's `BaseChatModel` interface internally, so any compatible model can be passed via the `llm` parameter.
+chunklabel uses LangChain's `BaseChatModel` interface internally, so any compatible model can be passed via the `llm` parameter.
 
 **Ollama**
 
 ```python
 from langchain_ollama import ChatOllama
-from seam import Seam
+from chunklabel import Seam
 
 seam = Seam(llm=ChatOllama(model="llama3"))
 ```
@@ -114,7 +125,7 @@ seam = Seam(llm=ChatOllama(model="llama3"))
 
 ```python
 from langchain_openai import ChatOpenAI
-from seam import Seam
+from chunklabel import Seam
 
 seam = Seam(llm=ChatOpenAI(
     model="llama3",
@@ -127,7 +138,7 @@ Note: local models must support structured output (JSON mode). If `with_structur
 
 ## Downstream use cases
 
-The `Chunk` list produced by seam is designed as input for further analysis:
+The `Chunk` list produced by chunklabel is designed as input for further analysis:
 
 - **NLI**: score the relationship between hypotheses and chunk categories
 - **NER**: analyze co-occurrence between entity labels and categories
