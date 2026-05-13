@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "seam"
-version = "0.1.4"
+version = "0.1.5"
 description = "Split text into semantically coherent, LLM-categorized chunks"
 authors = ["pillyshi <h.tanaka36@gmail.com>"]
 license = "MIT"

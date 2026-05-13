@@ -1,3 +1,6 @@
+import json
+import pytest
+from pathlib import Path
 from unittest.mock import MagicMock
 
 from seam.normalizer import Normalizer
@@ -39,3 +42,38 @@ def test_build_mapping_passes_unique_categories() -> None:
     normalizer.build_mapping(chunks)
     called_with = mock_backend.build_category_mapping.call_args[0][0]
     assert sorted(called_with) == ["a", "b"]
+
+
+def test_build_mapping_stores_internally() -> None:
+    mock_backend = MagicMock()
+    mock_backend.build_category_mapping.return_value = {"a": "b"}
+    normalizer = Normalizer(backend=mock_backend)
+    normalizer.build_mapping([_chunk("a")])
+    result = normalizer.apply([_chunk("a")])
+    assert result[0].category == "b"
+
+
+def test_apply_without_mapping_raises_when_none() -> None:
+    normalizer = Normalizer(backend=MagicMock())
+    with pytest.raises(ValueError):
+        normalizer.apply([_chunk("a")])
+
+
+def test_save_and_load_roundtrip(tmp_path: Path) -> None:
+    mock_backend = MagicMock()
+    mock_backend.build_category_mapping.return_value = {"kick-off": "initiation"}
+    normalizer = Normalizer(backend=mock_backend)
+    normalizer.build_mapping([_chunk("kick-off")])
+
+    path = tmp_path / "mapping.json"
+    normalizer.save(path)
+
+    loaded = Normalizer.load(path)
+    result = loaded.apply([_chunk("kick-off")])
+    assert result[0].category == "initiation"
+
+
+def test_save_raises_when_no_mapping() -> None:
+    normalizer = Normalizer(backend=MagicMock())
+    with pytest.raises(ValueError):
+        normalizer.save("mapping.json")

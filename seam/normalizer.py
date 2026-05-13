@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import dataclasses
+import json
+from pathlib import Path
 
 from seam.llm.base import LLMBackend
 from seam.types import Chunk
@@ -8,6 +10,7 @@ from seam.types import Chunk
 
 class Normalizer:
     def __init__(self, backend: LLMBackend | None = None) -> None:
+        self._mapping: dict[str, str] | None = None
         if backend is not None:
             self._backend = backend
         else:
@@ -17,10 +20,26 @@ class Normalizer:
 
     def build_mapping(self, chunks: list[Chunk]) -> dict[str, str]:
         categories = sorted({c.category for c in chunks})
-        return self._backend.build_category_mapping(categories)
+        self._mapping = self._backend.build_category_mapping(categories)
+        return self._mapping
 
-    def apply(self, chunks: list[Chunk], mapping: dict[str, str]) -> list[Chunk]:
+    def apply(self, chunks: list[Chunk], mapping: dict[str, str] | None = None) -> list[Chunk]:
+        m = mapping if mapping is not None else self._mapping
+        if m is None:
+            raise ValueError("No mapping available. Call build_mapping first or pass a mapping.")
         return [
-            dataclasses.replace(chunk, category=mapping.get(chunk.category, chunk.category))
+            dataclasses.replace(chunk, category=m.get(chunk.category, chunk.category))
             for chunk in chunks
         ]
+
+    def save(self, path: str | Path) -> None:
+        if self._mapping is None:
+            raise ValueError("No mapping to save. Call build_mapping first.")
+        Path(path).write_text(json.dumps(self._mapping, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    @classmethod
+    def load(cls, path: str | Path) -> Normalizer:
+        obj = cls.__new__(cls)
+        obj._backend = None
+        obj._mapping = json.loads(Path(path).read_text(encoding="utf-8"))
+        return obj
