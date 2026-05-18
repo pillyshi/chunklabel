@@ -103,14 +103,14 @@ class MockTwoPassBackend(LLMBackend):
 
 def test_two_pass_returns_chunks() -> None:
     labeler = ChunkLabeler(backend=MockTwoPassBackend())
-    chunks = labeler.split_two_pass(TEXT)
+    chunks = labeler.split(TEXT, mode="two_pass")
     assert len(chunks) > 0
     assert all(isinstance(c, Chunk) for c in chunks)
 
 
 def test_two_pass_positions_are_valid() -> None:
     labeler = ChunkLabeler(backend=MockTwoPassBackend())
-    chunks = labeler.split_two_pass(TEXT)
+    chunks = labeler.split(TEXT, mode="two_pass")
     for chunk in chunks:
         assert 0 <= chunk.start < chunk.end <= len(TEXT)
         assert TEXT[chunk.start:chunk.end] == chunk.quote
@@ -118,13 +118,13 @@ def test_two_pass_positions_are_valid() -> None:
 
 def test_two_pass_covers_full_text() -> None:
     labeler = ChunkLabeler(backend=MockTwoPassBackend())
-    chunks = labeler.split_two_pass(TEXT)
+    chunks = labeler.split(TEXT, mode="two_pass")
     assert "".join(c.quote for c in chunks) == TEXT
 
 
 def test_two_pass_no_empty_or_uncategorized() -> None:
     labeler = ChunkLabeler(backend=MockTwoPassBackend())
-    chunks = labeler.split_two_pass(TEXT)
+    chunks = labeler.split(TEXT, mode="two_pass")
     for chunk in chunks:
         assert chunk.category != ""
         assert chunk.category != "uncategorized"
@@ -132,7 +132,7 @@ def test_two_pass_no_empty_or_uncategorized() -> None:
 
 def test_two_pass_expected_labels() -> None:
     labeler = ChunkLabeler(backend=MockTwoPassBackend())
-    chunks = labeler.split_two_pass(TEXT)
+    chunks = labeler.split(TEXT, mode="two_pass")
     cats = {c.category for c in chunks}
     assert "initiation" in cats
     assert "obstacle" in cats
@@ -143,4 +143,4 @@ def test_two_pass_raises_not_implemented_on_plain_backend() -> None:
     import pytest
     labeler = ChunkLabeler(backend=MockBackend())
     with pytest.raises(NotImplementedError):
-        labeler.split_two_pass(TEXT)
+        labeler.split(TEXT, mode="two_pass")
