@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from typing import Literal
 
 from chunklabel.alignment import align
@@ -26,7 +27,14 @@ class ChunkLabeler:
         self.fuzzy_threshold = fuzzy_threshold
         self.on_align_error = on_align_error
 
-    def split(self, text: str) -> list[Chunk]:
+    def split(self, text: str, mode: Literal["one_pass", "two_pass"] = "one_pass") -> list[Chunk]:
+        if mode == "two_pass":
+            raw_chunks = self._backend.extract_boundaries(text)
+            spans = align(raw_chunks, text, self.fuzzy_threshold, on_error=self.on_align_error)
+            chunks = postprocess(raw_chunks, spans, text)
+            labels = self._backend.label_chunks(chunks)
+            return [dataclasses.replace(chunk, category=label) for chunk, label in zip(chunks, labels)]
+
         raw_chunks = self._backend.extract_chunks(text)
         spans = align(raw_chunks, text, self.fuzzy_threshold, on_error=self.on_align_error)
         return postprocess(raw_chunks, spans, text)
