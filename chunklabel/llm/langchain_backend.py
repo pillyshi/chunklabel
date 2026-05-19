@@ -33,13 +33,8 @@ class _BoundaryListSchema(BaseModel):
     segments: list[_BoundarySchema]
 
 
-class _LabeledSegmentSchema(BaseModel):
-    index: int
+class _SingleLabelSchema(BaseModel):
     label: str
-
-
-class _LabelListSchema(BaseModel):
-    segments: list[_LabeledSegmentSchema]
 
 
 class LangChainBackend(LLMBackend):
@@ -68,18 +63,15 @@ class LangChainBackend(LLMBackend):
         return [RawChunk(category="", quote=s.quote) for s in result.segments]
 
     def label_chunks(self, chunks: list[Chunk]) -> list[str]:
-        lines = [f"{i + 1}. {chunk.quote}" for i, chunk in enumerate(chunks)]
-        structured: Any = self._llm.with_structured_output(_LabelListSchema)
-        result: _LabelListSchema = structured.invoke(
-            [SystemMessage(content=LABEL_SYSTEM), HumanMessage(content="\n".join(lines))],
-            config={"timeout": self._timeout},
-        )
-        sorted_segs = sorted(result.segments, key=lambda s: s.index)
-        if len(sorted_segs) != len(chunks):
-            raise ValueError(
-                f"label_chunks: expected {len(chunks)} labels, got {len(sorted_segs)}"
+        structured: Any = self._llm.with_structured_output(_SingleLabelSchema)
+        labels = []
+        for chunk in chunks:
+            result: _SingleLabelSchema = structured.invoke(
+                [SystemMessage(content=LABEL_SYSTEM), HumanMessage(content=chunk.quote)],
+                config={"timeout": self._timeout},
             )
-        return [s.label for s in sorted_segs]
+            labels.append(result.label)
+        return labels
 
     def build_category_mapping(self, categories: list[str]) -> dict[str, str]:
         prompt = f"{json.dumps(sorted(categories), indent=2)}"

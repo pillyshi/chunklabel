@@ -32,8 +32,15 @@ class ChunkLabeler:
             raw_chunks = self._backend.extract_boundaries(text)
             spans = align(raw_chunks, text, self.fuzzy_threshold, on_error=self.on_align_error)
             chunks = postprocess(raw_chunks, spans, text)
-            labels = self._backend.label_chunks(chunks)
-            return [dataclasses.replace(chunk, category=label) for chunk, label in zip(chunks, labels)]
+
+            non_ws_indices = [i for i, c in enumerate(chunks) if c.quote.strip()]
+            labels_from_llm = self._backend.label_chunks([chunks[i] for i in non_ws_indices])
+            label_map = dict(zip(non_ws_indices, labels_from_llm))
+
+            return [
+                dataclasses.replace(c, category=label_map.get(i, "whitespace"))
+                for i, c in enumerate(chunks)
+            ]
 
         raw_chunks = self._backend.extract_chunks(text)
         spans = align(raw_chunks, text, self.fuzzy_threshold, on_error=self.on_align_error)

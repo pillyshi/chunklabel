@@ -126,8 +126,7 @@ def test_two_pass_no_empty_or_uncategorized() -> None:
     labeler = ChunkLabeler(backend=MockTwoPassBackend())
     chunks = labeler.split(TEXT, mode="two_pass")
     for chunk in chunks:
-        assert chunk.category != ""
-        assert chunk.category != "uncategorized"
+        assert chunk.category not in ("", "uncategorized")
 
 
 def test_two_pass_expected_labels() -> None:
@@ -144,3 +143,39 @@ def test_two_pass_raises_not_implemented_on_plain_backend() -> None:
     labeler = ChunkLabeler(backend=MockBackend())
     with pytest.raises(NotImplementedError):
         labeler.split(TEXT, mode="two_pass")
+
+
+TEXT_WITH_NEWLINE = "Introduction.\n\nConclusion."
+
+
+class MockTwoPassBackendWithWhitespace(LLMBackend):
+    def extract_chunks(self, text: str) -> list[RawChunk]:
+        raise NotImplementedError
+
+    def build_category_mapping(self, categories: list[str]) -> dict[str, str]:
+        return {c: c for c in categories}
+
+    def extract_boundaries(self, text: str) -> list[RawChunk]:
+        return [
+            RawChunk(category="", quote="Introduction."),
+            RawChunk(category="", quote="Conclusion."),
+        ]
+
+    def label_chunks(self, chunks: list[Chunk]) -> list[str]:
+        assert all(c.quote.strip() for c in chunks), "whitespace-only chunk passed to label_chunks"
+        return ["intro" if "Introduction" in c.quote else "conclusion" for c in chunks]
+
+
+def test_two_pass_whitespace_chunk_gets_whitespace_label() -> None:
+    labeler = ChunkLabeler(backend=MockTwoPassBackendWithWhitespace())
+    chunks = labeler.split(TEXT_WITH_NEWLINE, mode="two_pass")
+    ws_chunks = [c for c in chunks if not c.quote.strip()]
+    assert all(c.category == "whitespace" for c in ws_chunks)
+
+
+def test_two_pass_whitespace_chunk_not_sent_to_llm() -> None:
+    labeler = ChunkLabeler(backend=MockTwoPassBackendWithWhitespace())
+    chunks = labeler.split(TEXT_WITH_NEWLINE, mode="two_pass")
+    assert any(c.category == "whitespace" for c in chunks)
+    assert any(c.category == "intro" for c in chunks)
+    assert any(c.category == "conclusion" for c in chunks)

@@ -24,12 +24,9 @@ Rules:
 """
 
 LABEL_SYSTEM = """\
-You are a text labeling assistant. Below is a numbered list of text segments extracted from a source document.
-
-For each segment, assign a short, descriptive, free-form category label (e.g. "initiation", "obstacle", "resolution").
+You are a text labeling assistant. Assign a single short, descriptive, free-form category label to the provided text segment (e.g. "initiation", "obstacle", "resolution").
 
 Rules:
-- Return exactly one label per segment, in the same order.
-- Use lowercase labels with no punctuation.
-- Labels must be meaningful — do not use "uncategorized" or "unknown".
+- Use lowercase with no punctuation.
+- The label must be meaningful — do not use "uncategorized" or "unknown".
 """
