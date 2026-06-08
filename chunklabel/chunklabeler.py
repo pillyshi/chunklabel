@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Literal
+from typing import Literal, Union
 
 from chunklabel.alignment import align
 from chunklabel.llm.base import LLMBackend
+from chunklabel.llm.client import BaseLLMClient
 from chunklabel.postprocess import postprocess
 from chunklabel.types import Chunk
 
@@ -12,7 +13,7 @@ from chunklabel.types import Chunk
 class ChunkLabeler:
     def __init__(
         self,
-        llm: object = None,
+        client: Union[BaseLLMClient, str] = "gpt-4o",
         fuzzy_threshold: int = 80,
         on_align_error: Literal["raise", "skip"] = "raise",
         timeout: float | None = 120.0,
@@ -21,9 +22,11 @@ class ChunkLabeler:
         if backend is not None:
             self._backend = backend
         else:
-            from chunklabel.llm.langchain_backend import LangChainBackend
+            from chunklabel.llm.backend import ClientBackend
+            from chunklabel.llm.client import OpenAIClient
 
-            self._backend = LangChainBackend(llm=llm, timeout=timeout)  # type: ignore[arg-type]
+            _client = OpenAIClient(model=client, timeout=timeout) if isinstance(client, str) else client
+            self._backend = ClientBackend(_client)
         self.fuzzy_threshold = fuzzy_threshold
         self.on_align_error = on_align_error
 
