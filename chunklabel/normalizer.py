@@ -3,26 +3,38 @@ from __future__ import annotations
 import dataclasses
 import json
 from pathlib import Path
+from typing_extensions import Self
 
-from chunklabel.llm.base import LLMBackend
+from pydantic import BaseModel
+
+from chunklabel.llm.client import BaseLLMClient, OpenAIClient
+from chunklabel.llm.prompts import NORMALIZE_SYSTEM
 from chunklabel.types import Chunk
 
 
-class Normalizer:
-    def __init__(self, backend: LLMBackend | None = None) -> None:
-        self._mapping: dict[str, str] | None = None
-        if backend is not None:
-            self._backend = backend
-        else:
-            from chunklabel.llm.backend import ClientBackend
-            from chunklabel.llm.client import OpenAIClient
+class _MappingSchema(BaseModel):
+    mapping: dict[str, str]
 
-            self._backend = ClientBackend(OpenAIClient(model="gpt-4o"))
+
+class Normalizer:
+    def __init__(self, client: BaseLLMClient | str = "gpt-4o") -> None:
+        self._mapping: dict[str, str] | None = None
+        if isinstance(client, str):
+            self._client: BaseLLMClient = OpenAIClient(model=client)
+        else:
+            self._client = client
 
     def build_mapping(self, chunks: list[Chunk]) -> dict[str, str]:
-        categories = sorted({c.category for c in chunks})
-        self._mapping = self._backend.build_category_mapping(categories)
-        return self._mapping
+        categories = sorted({c.category for c in chunks if c.category})
+        if not categories:
+            self._mapping = {}
+            return {}
+        result = self._client.complete_structured(
+            [{"role": "system", "content": NORMALIZE_SYSTEM}, {"role": "user", "content": json.dumps(categories, indent=2)}],
+            _MappingSchema,
+        )
+        self._mapping = result.mapping
+        return dict(self._mapping)
 
     def apply(self, chunks: list[Chunk], mapping: dict[str, str] | None = None) -> list[Chunk]:
         m = mapping if mapping is not None else self._mapping
@@ -39,8 +51,14 @@ class Normalizer:
         Path(path).write_text(json.dumps(self._mapping, ensure_ascii=False, indent=2), encoding="utf-8")
 
     @classmethod
-    def load(cls, path: str | Path) -> Normalizer:
-        obj = cls.__new__(cls)
-        obj._backend = None
-        obj._mapping = json.loads(Path(path).read_text(encoding="utf-8"))
+    def load(cls, path: str | Path, client: BaseLLMClient | str = "gpt-4o") -> Self:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        if not isinstance(data, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in data.items()
+        ):
+            raise ValueError(
+                f"Expected dict[str, str], got {type(data).__name__} (values must all be strings)"
+            )
+        obj = cls(client=client)
+        obj._mapping = data
         return obj

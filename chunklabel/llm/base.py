@@ -7,8 +7,6 @@ class LLMBackend(ABC):
     @abstractmethod
     def extract_chunks(self, text: str) -> list[RawChunk]: ...
 
-    def build_category_mapping(self, categories: list[str]) -> dict[str, str]: ...
-
     def extract_boundaries(self, text: str) -> list[RawChunk]:
         """Pass 1: return verbatim quote spans with empty category strings."""
         raise NotImplementedError(

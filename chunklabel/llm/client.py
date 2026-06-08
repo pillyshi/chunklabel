@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Protocol, TypeVar, runtime_checkable
+from typing import Any, Protocol, TypeVar, cast, runtime_checkable
 
 from pydantic import BaseModel
 
@@ -31,7 +31,7 @@ class OpenAIClient:
         parsed = response.choices[0].message.parsed
         if parsed is None:
             raise ValueError("OpenAI returned a refusal or null parsed response")
-        return parsed  # type: ignore[return-value]
+        return parsed
 
 
 class LlamaCppClient:
@@ -85,4 +85,4 @@ def _inline_refs(schema: dict[str, Any]) -> dict[str, Any]:
 
     resolved = resolve(schema)
     resolved.pop("$defs", None)
-    return resolved  # type: ignore[return-value]
+    return cast(dict[str, Any], resolved)
