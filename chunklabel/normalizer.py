@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from chunklabel.llm.client import BaseLLMClient, OpenAIClient
+from chunklabel.llm.client import BaseLLMClient
 from chunklabel.llm.prompts import NORMALIZE_SYSTEM
 from chunklabel.types import Chunk
 
@@ -24,7 +24,7 @@ class Normalizer:
             self._client = client
 
     def build_mapping(self, chunks: list[Chunk]) -> dict[str, str]:
-        categories = sorted({c.category for c in chunks})
+        categories = sorted({c.category for c in chunks if c.category})
         if not categories:
             self._mapping = {}
             return {}
@@ -55,8 +55,9 @@ class Normalizer:
         if not isinstance(data, dict) or not all(
             isinstance(k, str) and isinstance(v, str) for k, v in data.items()
         ):
-            raise ValueError(f"Expected dict[str, str], got {type(data).__name__}")
-        obj = cls.__new__(cls)
+            raise ValueError(
+                f"Expected dict[str, str], got {type(data).__name__} (values must all be strings)"
+            )
+        obj = cls(client=client)
         obj._mapping = data
-        obj._client = OpenAIClient(model=client) if isinstance(client, str) else client
         return obj

@@ -98,6 +98,14 @@ def test_build_mapping_empty_chunks_skips_llm() -> None:
     mock_client.complete_structured.assert_not_called()
 
 
+def test_build_mapping_empty_category_skips_llm() -> None:
+    mock_client = MagicMock()
+    normalizer = Normalizer(client=mock_client)
+    result = normalizer.build_mapping([_chunk("")])
+    assert result == {}
+    mock_client.complete_structured.assert_not_called()
+
+
 def test_load_raises_on_invalid_json_structure(tmp_path: Path) -> None:
     path = tmp_path / "bad.json"
     path.write_text(json.dumps({"a": 1}), encoding="utf-8")
