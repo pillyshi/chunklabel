@@ -1,7 +1,7 @@
 import json
 import pytest
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from chunklabel.normalizer import Normalizer
 from chunklabel.types import Chunk
@@ -15,6 +15,12 @@ def _mock_client(mapping: dict[str, str] | None = None) -> MagicMock:
     client = MagicMock()
     client.complete_structured.return_value = MagicMock(mapping=mapping or {})
     return client
+
+
+def test_init_with_string_model_creates_openai_client() -> None:
+    with patch("chunklabel.normalizer.OpenAIClient") as mock_cls:
+        Normalizer("gpt-4o-mini")
+        mock_cls.assert_called_once_with(model="gpt-4o-mini")
 
 
 def test_apply_renames_categories() -> None:

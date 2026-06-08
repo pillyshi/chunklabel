@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from chunklabel.llm.client import BaseLLMClient
+from chunklabel.llm.client import BaseLLMClient, OpenAIClient
 from chunklabel.llm.prompts import NORMALIZE_SYSTEM
 from chunklabel.types import Chunk
 
