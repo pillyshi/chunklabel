@@ -17,9 +17,6 @@ class MockBackend(LLMBackend):
             RawChunk(category="outcome", quote="the product launched successfully in June"),
         ]
 
-    def build_category_mapping(self, categories: list[str]) -> dict[str, str]:
-        return {c: c for c in categories}
-
 
 def test_full_pipeline_returns_chunks() -> None:
     labeler = ChunkLabeler(backend=MockBackend())
@@ -60,9 +57,6 @@ class MockBackendWithBadChunk(LLMBackend):
             RawChunk(category="outcome", quote="the product launched successfully in June"),
         ]
 
-    def build_category_mapping(self, categories: list[str]) -> dict[str, str]:
-        return {c: c for c in categories}
-
 
 def test_skip_unaligned_covers_full_text() -> None:
     labeler = ChunkLabeler(backend=MockBackendWithBadChunk(), on_align_error="skip")
@@ -82,9 +76,6 @@ def test_skip_unaligned_bad_chunk_becomes_uncategorized() -> None:
 class MockTwoPassBackend(LLMBackend):
     def extract_chunks(self, text: str) -> list[RawChunk]:
         raise NotImplementedError
-
-    def build_category_mapping(self, categories: list[str]) -> dict[str, str]:
-        return {c: c for c in categories}
 
     def extract_boundaries(self, text: str) -> list[RawChunk]:
         return [
@@ -151,9 +142,6 @@ TEXT_WITH_NEWLINE = "Introduction.\n\nConclusion."
 class MockTwoPassBackendWithWhitespace(LLMBackend):
     def extract_chunks(self, text: str) -> list[RawChunk]:
         raise NotImplementedError
-
-    def build_category_mapping(self, categories: list[str]) -> dict[str, str]:
-        return {c: c for c in categories}
 
     def extract_boundaries(self, text: str) -> list[RawChunk]:
         return [

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import json
 
 from pydantic import BaseModel
 
 from chunklabel.llm.base import LLMBackend
 from chunklabel.llm.client import BaseLLMClient
-from chunklabel.llm.prompts import BOUNDARY_SYSTEM, LABEL_SYSTEM, NORMALIZE_SYSTEM, SPLIT_SYSTEM
+from chunklabel.llm.prompts import BOUNDARY_SYSTEM, LABEL_SYSTEM, SPLIT_SYSTEM
 from chunklabel.types import Chunk, RawChunk
 
 
@@ -17,10 +16,6 @@ class _RawChunkSchema(BaseModel):
 
 class _ChunkListSchema(BaseModel):
     chunks: list[_RawChunkSchema]
-
-
-class _MappingSchema(BaseModel):
-    mapping: dict[str, str]
 
 
 class _BoundarySchema(BaseModel):
@@ -63,10 +58,3 @@ class ClientBackend(LLMBackend):
             labels.append(result.label)
         return labels
 
-    def build_category_mapping(self, categories: list[str]) -> dict[str, str]:
-        prompt = json.dumps(sorted(categories), indent=2)
-        result = self._client.complete_structured(
-            [{"role": "system", "content": NORMALIZE_SYSTEM}, {"role": "user", "content": prompt}],
-            _MappingSchema,
-        )
-        return result.mapping

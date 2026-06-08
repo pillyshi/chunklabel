@@ -4,24 +4,32 @@ import dataclasses
 import json
 from pathlib import Path
 
-from chunklabel.llm.base import LLMBackend
+from pydantic import BaseModel
+
+from chunklabel.llm.client import BaseLLMClient, OpenAIClient
+from chunklabel.llm.prompts import NORMALIZE_SYSTEM
 from chunklabel.types import Chunk
 
 
-class Normalizer:
-    def __init__(self, backend: LLMBackend | None = None) -> None:
-        self._mapping: dict[str, str] | None = None
-        if backend is not None:
-            self._backend = backend
-        else:
-            from chunklabel.llm.backend import ClientBackend
-            from chunklabel.llm.client import OpenAIClient
+class _MappingSchema(BaseModel):
+    mapping: dict[str, str]
 
-            self._backend = ClientBackend(OpenAIClient(model="gpt-4o"))
+
+class Normalizer:
+    def __init__(self, client: BaseLLMClient | str = "gpt-4o") -> None:
+        self._mapping: dict[str, str] | None = None
+        if isinstance(client, str):
+            self._client: BaseLLMClient = OpenAIClient(model=client)
+        else:
+            self._client = client
 
     def build_mapping(self, chunks: list[Chunk]) -> dict[str, str]:
         categories = sorted({c.category for c in chunks})
-        self._mapping = self._backend.build_category_mapping(categories)
+        result = self._client.complete_structured(
+            [{"role": "system", "content": NORMALIZE_SYSTEM}, {"role": "user", "content": json.dumps(categories, indent=2)}],
+            _MappingSchema,
+        )
+        self._mapping = result.mapping
         return self._mapping
 
     def apply(self, chunks: list[Chunk], mapping: dict[str, str] | None = None) -> list[Chunk]:
@@ -41,6 +49,5 @@ class Normalizer:
     @classmethod
     def load(cls, path: str | Path) -> Normalizer:
         obj = cls.__new__(cls)
-        obj._backend = None
         obj._mapping = json.loads(Path(path).read_text(encoding="utf-8"))
         return obj
