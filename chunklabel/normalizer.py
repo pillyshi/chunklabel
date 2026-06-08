@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import json
 from pathlib import Path
+from typing_extensions import Self
 
 from pydantic import BaseModel
 
@@ -50,7 +51,7 @@ class Normalizer:
         Path(path).write_text(json.dumps(self._mapping, ensure_ascii=False, indent=2), encoding="utf-8")
 
     @classmethod
-    def load(cls, path: str | Path, client: BaseLLMClient | str = "gpt-4o") -> Normalizer:
+    def load(cls, path: str | Path, client: BaseLLMClient | str = "gpt-4o") -> Self:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         if not isinstance(data, dict) or not all(
             isinstance(k, str) and isinstance(v, str) for k, v in data.items()
