@@ -25,12 +25,15 @@ class Normalizer:
 
     def build_mapping(self, chunks: list[Chunk]) -> dict[str, str]:
         categories = sorted({c.category for c in chunks})
+        if not categories:
+            self._mapping = {}
+            return {}
         result = self._client.complete_structured(
             [{"role": "system", "content": NORMALIZE_SYSTEM}, {"role": "user", "content": json.dumps(categories, indent=2)}],
             _MappingSchema,
         )
         self._mapping = result.mapping
-        return self._mapping
+        return dict(self._mapping)
 
     def apply(self, chunks: list[Chunk], mapping: dict[str, str] | None = None) -> list[Chunk]:
         m = mapping if mapping is not None else self._mapping
@@ -47,7 +50,13 @@ class Normalizer:
         Path(path).write_text(json.dumps(self._mapping, ensure_ascii=False, indent=2), encoding="utf-8")
 
     @classmethod
-    def load(cls, path: str | Path) -> Normalizer:
+    def load(cls, path: str | Path, client: BaseLLMClient | str = "gpt-4o") -> Normalizer:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        if not isinstance(data, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in data.items()
+        ):
+            raise ValueError(f"Expected dict[str, str], got {type(data).__name__}")
         obj = cls.__new__(cls)
-        obj._mapping = json.loads(Path(path).read_text(encoding="utf-8"))
+        obj._mapping = data
+        obj._client = OpenAIClient(model=client) if isinstance(client, str) else client
         return obj
