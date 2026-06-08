@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import warnings
 from typing import Literal, Union
 
 from chunklabel.alignment import align
@@ -25,7 +26,17 @@ class ChunkLabeler:
             from chunklabel.llm.backend import ClientBackend
             from chunklabel.llm.client import OpenAIClient
 
-            _client = OpenAIClient(model=client, timeout=timeout) if isinstance(client, str) else client
+            if isinstance(client, str):
+                _client: BaseLLMClient = OpenAIClient(model=client, timeout=timeout)
+            else:
+                if timeout != 120.0:
+                    warnings.warn(
+                        "timeout is ignored when a pre-built BaseLLMClient is passed; "
+                        "configure it on the client directly.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                _client = client
             self._backend = ClientBackend(_client)
         self.fuzzy_threshold = fuzzy_threshold
         self.on_align_error = on_align_error
