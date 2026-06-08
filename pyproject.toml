@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chunklabel"
-version = "0.1.8"
+version = "0.1.9"
 description = "Split text into semantically coherent, LLM-categorized chunks"
 authors = ["pillyshi <h.tanaka36@gmail.com>"]
 license = "MIT"
@@ -9,15 +9,14 @@ packages = [{ include = "chunklabel" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-langchain = "^0.3"
-langchain-openai = "^0.3"
+openai = "^1.0"
 rapidfuzz = "^3.0"
 pydantic = "^2.0"
 
 [tool.poetry.extras]
-ollama = ["langchain-ollama"]
+llamacpp = ["llama-cpp-python"]
 
-[tool.poetry.dependencies.langchain-ollama]
+[tool.poetry.dependencies.llama-cpp-python]
 version = "^0.3"
 optional = true
 

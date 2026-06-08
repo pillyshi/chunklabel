@@ -14,9 +14,10 @@ class Normalizer:
         if backend is not None:
             self._backend = backend
         else:
-            from chunklabel.llm.langchain_backend import LangChainBackend
+            from chunklabel.llm.backend import ClientBackend
+            from chunklabel.llm.client import OpenAIClient
 
-            self._backend = LangChainBackend()
+            self._backend = ClientBackend(OpenAIClient(model="gpt-4o"))
 
     def build_mapping(self, chunks: list[Chunk]) -> dict[str, str]:
         categories = sorted({c.category for c in chunks})

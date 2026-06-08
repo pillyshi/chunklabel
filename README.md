@@ -29,6 +29,12 @@ chunks = labeler.split(
 pip install chunklabel
 ```
 
+For in-process inference with llama.cpp:
+
+```bash
+pip install "chunklabel[llamacpp]"
+```
+
 ## Data structures
 
 The LLM returns raw chunks without span information. Alignment is performed as a separate step, producing the final `Chunk` with character-level positions.
@@ -103,38 +109,40 @@ Normalization runs offline over the full category inventory, so the LLM can make
 
 ```python
 labeler = ChunkLabeler(
-    model="gpt-4o",          # LLM model to use
-    fuzzy_threshold=80,      # Match threshold for rapidfuzz alignment (0–100)
+    client="gpt-4o",     # model name string, or a BaseLLMClient instance
+    fuzzy_threshold=80,  # match threshold for rapidfuzz alignment (0–100)
 )
 ```
 
 ## Using local LLMs
 
-chunklabel uses LangChain's `BaseChatModel` interface internally, so any compatible model can be passed via the `llm` parameter.
-
-**Ollama**
+**llama.cpp (in-process)**
 
 ```python
-from langchain_ollama import ChatOllama
+from llama_cpp import Llama
 from chunklabel import ChunkLabeler
+from chunklabel.llm import LlamaCppClient
 
-labeler = ChunkLabeler(llm=ChatOllama(model="llama3"))
+client = LlamaCppClient(Llama(model_path="path/to/model.gguf", n_ctx=4096))
+labeler = ChunkLabeler(client=client)
 ```
 
-**llama.cpp (OpenAI-compatible server)**
+**OpenAI-compatible server** (e.g. llama.cpp server, Ollama)
+
+Set `OPENAI_BASE_URL` before constructing the client:
+
+```bash
+OPENAI_BASE_URL=http://localhost:8080/v1 python your_script.py
+```
 
 ```python
-from langchain_openai import ChatOpenAI
 from chunklabel import ChunkLabeler
+from chunklabel.llm import OpenAIClient
 
-labeler = ChunkLabeler(llm=ChatOpenAI(
-    model="llama3",
-    base_url="http://localhost:8080/v1",
-    api_key="not-used",
-))
+labeler = ChunkLabeler(client=OpenAIClient(model="llama3", api_key="not-used"))
 ```
 
-Note: local models must support structured output (JSON mode). If `with_structured_output` is not reliable, wrap the model with a JSON-enforcing layer before passing it in.
+Note: local models must support JSON-mode structured output.
 
 ## Downstream use cases
 
