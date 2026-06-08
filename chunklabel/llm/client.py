@@ -26,6 +26,8 @@ class OpenAIClient:
             messages=messages,  # type: ignore[arg-type]
             response_format=response_model,
         )
+        if not response.choices:
+            raise ValueError("OpenAI returned an empty choices list")
         parsed = response.choices[0].message.parsed
         if parsed is None:
             raise ValueError("OpenAI returned a refusal or null parsed response")
@@ -50,7 +52,12 @@ class LlamaCppClient:
             messages=messages,
             response_format={"type": "json_object", "schema": schema},
         )
-        content = result["choices"][0]["message"]["content"] or ""
+        choices = result.get("choices") or []
+        if not choices:
+            raise ValueError("llama-cpp returned no choices")
+        content = choices[0]["message"]["content"]
+        if not content:
+            raise ValueError("llama-cpp returned empty content")
         return response_model.model_validate(json.loads(content))
 
 
@@ -67,11 +74,15 @@ def _inline_refs(schema: dict[str, Any]) -> dict[str, Any]:
             if "$ref" in node:
                 ref: str = node["$ref"]
                 if ref.startswith("#/$defs/") and ref not in _visiting:
-                    return resolve(defs[ref[len("#/$defs/"):]], _visiting | {ref})
+                    key = ref[len("#/$defs/"):]
+                    if key in defs:
+                        return resolve(defs[key], _visiting | {ref})
                 return node
-            return {k: resolve(v, _visiting) for k, v in node.items() if k != "$defs"}
+            return {k: resolve(v, _visiting) for k, v in node.items()}
         if isinstance(node, list):
             return [resolve(item, _visiting) for item in node]
         return node
 
-    return resolve(schema)  # type: ignore[return-value]
+    resolved = resolve(schema)
+    resolved.pop("$defs", None)
+    return resolved  # type: ignore[return-value]
