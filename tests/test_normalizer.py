@@ -77,7 +77,7 @@ def test_save_and_load_roundtrip(tmp_path: Path) -> None:
     path = tmp_path / "mapping.json"
     normalizer.save(path)
 
-    loaded = Normalizer.load(path, client=MagicMock())
+    loaded = Normalizer.load(path)
     result = loaded.apply([_chunk("kick-off")])
     assert result[0].category == "initiation"
 
@@ -116,17 +116,16 @@ def test_load_raises_on_invalid_json_structure(tmp_path: Path) -> None:
     path = tmp_path / "bad.json"
     path.write_text(json.dumps({"a": 1}), encoding="utf-8")
     with pytest.raises(ValueError):
-        Normalizer.load(path, client=MagicMock())
+        Normalizer.load(path)
 
 
-def test_load_build_mapping_works_with_client(tmp_path: Path) -> None:
+def test_load_build_mapping_raises_without_client(tmp_path: Path) -> None:
     mock_client = _mock_client({"kick-off": "initiation"})
     normalizer = Normalizer(client=mock_client)
     normalizer.build_mapping([_chunk("kick-off")])
     path = tmp_path / "mapping.json"
     normalizer.save(path)
 
-    new_mock = _mock_client({"x": "y"})
-    loaded = Normalizer.load(path, client=new_mock)
-    loaded.build_mapping([_chunk("x")])
-    assert loaded._mapping == {"x": "y"}
+    loaded = Normalizer.load(path)
+    with pytest.raises(ValueError):
+        loaded.build_mapping([_chunk("kick-off")])
