@@ -1,0 +1,140 @@
+catalog_version: 1
+project: ''
+verified_on:
+verification:
+  provider: OpenAlex
+  client: pyalex
+source_reports: []
+papers:
+- key: hearst-1994
+  title: Multi-paragraph segmentation of expository text
+  authors:
+  - Marti A. Hearst
+  year: 1994
+  publication_type: article
+  venue: ''
+  identifiers:
+    doi: 10.3115/981732.981734
+    openalex: W2100873065
+  relevance: core
+  priority: high
+  rationale: Founding TextTiling paper; lexical cohesion dip as boundary signal
+    is a baseline to compare against and a source for boundary_score idea.
+  note_status: done
+  pdf_status: missing
+- key: beeferman-1999
+  title: Statistical Models for Text Segmentation
+  authors:
+  - Doug Beeferman
+  - Adam Berger
+  - John Lafferty
+  year: 1999
+  publication_type: article
+  venue: Machine Learning
+  identifiers:
+    doi: 10.1023/a:1007506220214
+    openalex: W1557074680
+  relevance: core
+  priority: high
+  rationale: Introduces Pk metric; needed for evaluation infra (ideas/ideas-from-literature.md#1).
+  note_status: pending
+  pdf_status: missing
+- key: pevzner-2002
+  title: A Critique and Improvement of an Evaluation Metric for Text Segmentation
+  authors:
+  - L. A. Pevzner
+  - Marti A. Hearst
+  year: 2002
+  publication_type: article
+  venue: Computational Linguistics
+  identifiers:
+    doi: 10.1162/089120102317341756
+    openalex: W2159083595
+  relevance: core
+  priority: high
+  rationale: Defines WindowDiff; fixes asymmetry in Pk. Both metrics needed for eval module.
+  note_status: done
+  pdf_status: missing
+- key: riedl-2012
+  title: 'TopicTiling: A Text Segmentation Algorithm based on LDA'
+  authors:
+  - Martin Riedl
+  - Chris Biemann
+  year: 2012
+  publication_type: article
+  venue: ''
+  identifiers:
+    openalex: W1862888253
+  relevance: related
+  priority: medium
+  rationale: Topic-model segmentation; alternative baseline, useful for coherence-based merging idea.
+  note_status: done
+  pdf_status: missing
+- key: lo-2021
+  title: Transformer over Pre-trained Transformer for Neural Text Segmentation with Enhanced Topic Coherence
+  authors:
+  - Kelvin Lo
+  - Yuan Jin
+  - Weicong Tan
+  - Ming Liu
+  - Lan Du
+  - Wray Buntine
+  year: 2021
+  publication_type: preprint
+  venue: ''
+  identifiers:
+    doi: 10.18653/v1/2021.findings-emnlp.283
+    openalex: W3205577628
+  relevance: related
+  priority: medium
+  rationale: Two-pass coherence enforcement motivates adjacent same-cluster merge post-processing.
+  note_status: done
+  pdf_status: missing
+- key: gao-2023
+  title: 'Retrieval-Augmented Generation for Large Language Models: A Survey'
+  authors:
+  - Yunfan Gao
+  - Yun Xiong
+  - Xinyu Gao
+  - Kangxiang Jia
+  - Jinliu Pan
+  - Yuxi Bi
+  - Yi Dai
+  - Jiawei Sun
+  - Wang, Meng
+  - Wang, Haofen
+  year: 2023
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.2312.10997
+    openalex: W4389984066
+  relevance: background
+  priority: low
+  rationale: Motivates semantic chunking over fixed-length splitting; context for RAG adapter idea.
+  note_status: done
+  pdf_status: missing
+- key: xu-2024
+  title: 'Large language models for generative information extraction: a survey'
+  authors:
+  - Derong Xu
+  - Wei Chen
+  - Wenjun Peng
+  - Chao Zhang
+  - Tong Xu
+  - Xiangyu Zhao
+  - Xian Wu
+  - Yefeng Zheng
+  - Yan Wang
+  - Enhong Chen
+  year: 2024
+  publication_type: article
+  venue: Frontiers of Computer Science
+  identifiers:
+    doi: 10.1007/s11704-024-40555-y
+    openalex: W4404239715
+  relevance: related
+  priority: medium
+  rationale: Frames chunklabel as a generative IE task; motivates prompt format ablation experiment.
+  note_status: done
+  pdf_status: missing
