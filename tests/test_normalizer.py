@@ -126,6 +126,13 @@ def test_load_raises_on_empty_string_key(tmp_path: Path) -> None:
         Normalizer.load(path)
 
 
+def test_load_raises_on_whitespace_only_key(tmp_path: Path) -> None:
+    path = tmp_path / "bad.json"
+    path.write_text(json.dumps({" ": "foo"}), encoding="utf-8")
+    with pytest.raises(ValueError):
+        Normalizer.load(path)
+
+
 def test_load_build_mapping_raises_without_client(tmp_path: Path) -> None:
     mock_client = _mock_client({"kick-off": "initiation"})
     normalizer = Normalizer(client=mock_client)

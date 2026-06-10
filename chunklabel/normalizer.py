@@ -22,7 +22,7 @@ class Normalizer:
         if isinstance(client, str):
             self._client: BaseLLMClient | None = OpenAIClient(model=client)
         else:
-            self._client: BaseLLMClient | None = client
+            self._client = client
 
     @classmethod
     def _from_mapping(cls, mapping: dict[str, str]) -> Self:
@@ -63,7 +63,7 @@ class Normalizer:
     def load(cls, path: str | Path) -> Self:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         if not isinstance(data, dict) or not all(
-            isinstance(k, str) and k and isinstance(v, str) for k, v in data.items()
+            isinstance(k, str) and k.strip() and isinstance(v, str) for k, v in data.items()
         ):
             raise ValueError(
                 f"Expected dict[str, str], got {type(data).__name__} (values must all be strings)"
