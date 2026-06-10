@@ -17,14 +17,19 @@ class _MappingSchema(BaseModel):
 
 
 class Normalizer:
-    def __init__(self, client: BaseLLMClient | str | None = "gpt-4o") -> None:
+    def __init__(self, client: BaseLLMClient | str = "gpt-4o") -> None:
         self._mapping: dict[str, str] | None = None
-        if client is None:
-            self._client: BaseLLMClient | None = None
-        elif isinstance(client, str):
-            self._client = OpenAIClient(model=client)
+        if isinstance(client, str):
+            self._client: BaseLLMClient | None = OpenAIClient(model=client)
         else:
-            self._client = client
+            self._client: BaseLLMClient | None = client
+
+    @classmethod
+    def _from_mapping(cls, mapping: dict[str, str]) -> Self:
+        obj = object.__new__(cls)
+        obj._client = None
+        obj._mapping = mapping
+        return obj
 
     def build_mapping(self, chunks: list[Chunk]) -> dict[str, str]:
         if self._client is None:
@@ -58,11 +63,9 @@ class Normalizer:
     def load(cls, path: str | Path) -> Self:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         if not isinstance(data, dict) or not all(
-            isinstance(k, str) and isinstance(v, str) for k, v in data.items()
+            isinstance(k, str) and k and isinstance(v, str) for k, v in data.items()
         ):
             raise ValueError(
                 f"Expected dict[str, str], got {type(data).__name__} (values must all be strings)"
             )
-        obj = cls(client=None)
-        obj._mapping = data
-        return obj
+        return cls._from_mapping(data)
