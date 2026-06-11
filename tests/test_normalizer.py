@@ -156,10 +156,18 @@ def test_load_raises_on_whitespace_only_value(tmp_path: Path) -> None:
 
 
 def test_build_mapping_raises_on_blank_llm_value() -> None:
-    from unittest.mock import patch
     from chunklabel.normalizer import _MappingSchema
     mock_client = MagicMock()
     mock_client.complete_structured.return_value = _MappingSchema(mapping={"kick-off": ""})
+    normalizer = Normalizer(client=mock_client)
+    with pytest.raises(ValueError):
+        normalizer.build_mapping([_chunk("kick-off")])
+
+
+def test_build_mapping_raises_on_blank_llm_key() -> None:
+    from chunklabel.normalizer import _MappingSchema
+    mock_client = MagicMock()
+    mock_client.complete_structured.return_value = _MappingSchema(mapping={" ": "initiation"})
     normalizer = Normalizer(client=mock_client)
     with pytest.raises(ValueError):
         normalizer.build_mapping([_chunk("kick-off")])
