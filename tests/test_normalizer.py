@@ -141,6 +141,30 @@ def test_load_raises_on_whitespace_only_key(tmp_path: Path) -> None:
         Normalizer.load(path)
 
 
+def test_load_raises_on_empty_string_value(tmp_path: Path) -> None:
+    path = tmp_path / "bad.json"
+    path.write_text(json.dumps({"initiation": ""}), encoding="utf-8")
+    with pytest.raises(ValueError):
+        Normalizer.load(path)
+
+
+def test_load_raises_on_whitespace_only_value(tmp_path: Path) -> None:
+    path = tmp_path / "bad.json"
+    path.write_text(json.dumps({"initiation": " "}), encoding="utf-8")
+    with pytest.raises(ValueError):
+        Normalizer.load(path)
+
+
+def test_build_mapping_raises_on_blank_llm_value() -> None:
+    from unittest.mock import patch
+    from chunklabel.normalizer import _MappingSchema
+    mock_client = MagicMock()
+    mock_client.complete_structured.return_value = _MappingSchema(mapping={"kick-off": ""})
+    normalizer = Normalizer(client=mock_client)
+    with pytest.raises(ValueError):
+        normalizer.build_mapping([_chunk("kick-off")])
+
+
 def test_load_build_mapping_raises_without_client(tmp_path: Path) -> None:
     mock_client = _mock_client({"kick-off": "initiation"})
     normalizer = Normalizer(client=mock_client)

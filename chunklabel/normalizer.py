@@ -42,6 +42,8 @@ class Normalizer:
             [{"role": "system", "content": NORMALIZE_SYSTEM}, {"role": "user", "content": json.dumps(categories, indent=2)}],
             _MappingSchema,
         )
+        if not all(isinstance(v, str) and v.strip() for v in result.mapping.values()):
+            raise ValueError("LLM returned invalid mapping: values must be non-blank strings")
         self._mapping = result.mapping
         return dict(self._mapping)
 
@@ -63,7 +65,7 @@ class Normalizer:
     def load(cls, path: str | Path) -> Self:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         if not isinstance(data, dict) or not all(
-            isinstance(k, str) and k.strip() and isinstance(v, str) for k, v in data.items()
+            isinstance(k, str) and k.strip() and isinstance(v, str) and v.strip() for k, v in data.items()
         ):
             raise ValueError(
                 f"Expected dict[str, str], got {type(data).__name__} (values must all be strings)"
