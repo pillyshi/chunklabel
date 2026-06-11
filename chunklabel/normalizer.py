@@ -34,7 +34,7 @@ class Normalizer:
     def build_mapping(self, chunks: list[Chunk]) -> dict[str, str]:
         if self._client is None:
             raise ValueError("No LLM client available. Instantiate Normalizer with a client to call build_mapping.")
-        categories = sorted({c.category for c in chunks if c.category})
+        categories = sorted({c.category for c in chunks if c.category and c.category.strip()})
         if not categories:
             self._mapping = {}
             return {}
