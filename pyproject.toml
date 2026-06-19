@@ -1,6 +1,6 @@
 [project]
 name = "chunklabel"
-version = "0.3.0"
+version = "0.3.1"
 description = "Split text into semantically coherent, LLM-categorized chunks"
 authors = [{ name = "pillyshi", email = "h.tanaka36@gmail.com" }]
 license = { text = "MIT" }

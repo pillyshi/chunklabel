@@ -43,14 +43,16 @@ class LlamaCppClient:
         client = LlamaCppClient(Llama(model_path="path/to/model.gguf", n_ctx=4096))
     """
 
-    def __init__(self, model: Any) -> None:
+    def __init__(self, model: Any, temperature: float = 0.0) -> None:
         self._model = model
+        self._temperature = temperature
 
     def complete_structured(self, messages: list[dict[str, str]], response_model: type[T]) -> T:
         schema = _inline_refs(response_model.model_json_schema())
         result = self._model.create_chat_completion(
             messages=messages,
             response_format={"type": "json_object", "schema": schema},
+            temperature=self._temperature,
         )
         choices = result.get("choices") or []
         if not choices:
