@@ -51,6 +51,7 @@ class LlamaCppClient:
         result = self._model.create_chat_completion(
             messages=messages,
             response_format={"type": "json_object", "schema": schema},
+            temperature=0.0,
         )
         choices = result.get("choices") or []
         if not choices:
