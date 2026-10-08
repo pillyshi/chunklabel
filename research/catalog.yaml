@@ -18,8 +18,7 @@ papers:
     openalex: W2100873065
   relevance: core
   priority: high
-  rationale: Founding TextTiling paper; lexical cohesion dip as boundary signal
-    is a baseline to compare against and a source for boundary_score idea.
+  rationale: Founding TextTiling paper; lexical cohesion dip as boundary signal is a baseline to compare against and a source for boundary_score idea.
   note_status: done
   pdf_status: missing
 - key: beeferman-1999
@@ -137,4 +136,333 @@ papers:
   priority: medium
   rationale: Frames chunklabel as a generative IE task; motivates prompt format ablation experiment.
   note_status: done
+  pdf_status: missing
+- key: zhao-2024
+  title: 'Meta-Chunking: Learning Text Segmentation and Semantic Completion via Logical Perception'
+  authors:
+  - Jihao Zhao
+  - Zhiyuan Ji
+  - Feng, Yuchen
+  - Pengnian Qi
+  - Simin Niu
+  - Bo Tang
+  - Feiyu Xiong
+  - Zhiyu Li
+  year: 2024
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.2410.12788
+    openalex: W4403583523
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: xing-2025
+  title: Bidirectional Perplexity-Based Chunking for Improved Retrieval-Augmented Generation
+  authors:
+  - Xinlai Xing
+  - Yinshuang Liao
+  - Jiali Li
+  year: 2025
+  publication_type: conference-paper
+  venue: International Conference on Artificial Intelligence and Computer Engineering (ICAICE)
+  identifiers:
+    doi: 10.1109/icaice68195.2025.11382533
+    openalex: W7129276477
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: zhong-2026
+  title: Semantic Chunking and the Entropy of Natural Language
+  authors:
+  - Weishun Zhong
+  - Doron Sivan
+  - Tankut Can
+  - Mikhail Katkov
+  - Misha V. Tsodyks
+  year: 2026
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.2602.13194
+    openalex: W7129025022
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: jia-2026
+  title: Unsupervised Text Segmentation via Kernel Change-Point Detection on Sentence Embeddings
+  authors:
+  - Mumin Jia
+  - Jairo Diaz-Rodriguez
+  year: 2026
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.2601.18788
+    openalex: W7125781143
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: diazrodriguez-2025
+  title: Consistent Kernel Change-Point Detection under m-Dependence for Text Segmentation
+  authors:
+  - Jairo Diaz-Rodriguez
+  - Jia, Mumin
+  year: 2025
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.2510.03437
+    openalex: W4416372163
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: kumar-2023
+  title: Bayesian Surprise Predicts Human Event Segmentation in Story Listening
+  authors:
+  - Manoj Kumar
+  - Ariel Goldstein
+  - Sebastian Michelmann
+  - Jeffrey M. Zacks
+  - Uri Hasson
+  - Kenneth A. Norman
+  year: 2023
+  publication_type: article
+  venue: Cognitive Science
+  identifiers:
+    doi: 10.1111/cogs.13343
+    openalex: W4387866094
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: tsipidi-2024
+  title: "Surprise! Uniform Information Density Isn't the Whole Story: Predicting Surprisal Contours in Long-form Discourse"
+  authors:
+  - Eleftheria Tsipidi
+  - Franz Nowak
+  - Ryan Cotterell
+  - Ethan Wilcox
+  - Mario Giulianelli
+  - Alex Warstadt
+  year: 2024
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.2410.16062
+    openalex: W4404089281
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: truong-2019
+  title: Selective review of offline change point detection methods
+  authors:
+  - Charles Truong
+  - Laurent Oudre
+  - Nicolas Vayatis
+  year: 2019
+  publication_type: article
+  venue: Signal Processing
+  identifiers:
+    doi: 10.1016/j.sigpro.2019.107299
+    openalex: W2909693411
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: killick-2012
+  title: Optimal Detection of Changepoints With a Linear Computational Cost
+  authors:
+  - Rebecca Killick
+  - Paul Fearnhead
+  - Idris A. Eckley
+  year: 2012
+  publication_type: article
+  venue: Journal of the American Statistical Association
+  identifiers:
+    doi: 10.1080/01621459.2012.737745
+    openalex: W1975684011
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: adams-2007
+  title: Bayesian Online Changepoint Detection
+  authors:
+  - Ryan Prescott Adams
+  - David Mackay
+  year: 2007
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.0710.3742
+    openalex: W1483365869
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: li-2026
+  title: Segmenting Human-LLM Co-authored Text via Change Point Detection
+  authors:
+  - Mengchu Li
+  - Jin Zhu
+  - Jinglai Li
+  - Chengchun Shi
+  year: 2026
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.2605.03723
+    openalex: W7160390883
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: utiyama-2001
+  title: A statistical model for domain-independent text segmentation
+  authors:
+  - Masao Utiyama
+  - Hitoshi Isahara
+  year: 2001
+  publication_type: conference-paper
+  venue: Annual Meeting of the Association for Computational Linguistics (ACL)
+  identifiers:
+    doi: 10.3115/1073012.1073076
+    openalex: W2148818577
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: choi-2000
+  title: Advances in domain independent linear text segmentation
+  authors:
+  - Freddy Y. Y. Choi
+  year: 2000
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.cs/0003083
+    openalex: W1626945812
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: alessandro-2021
+  title: Unsupervised Topic Segmentation of Meetings with BERT Embeddings
+  authors:
+  - Solbiati, Alessandro
+  - Kevin Heffernan
+  - Georgios Damaskinos
+  - Shivani Poddar
+  - Modi, Shubham
+  - Jacques Calì
+  year: 2021
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.2106.12978
+    openalex: W3175502681
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: qu-2025
+  title: Is Semantic Chunking Worth the Computational Cost?
+  authors:
+  - Renyi Qu
+  - Ruixuan Tu
+  - Forrest Sheng Bao
+  year: 2025
+  publication_type: conference-paper
+  venue: 'Findings of the Association for Computational Linguistics: NAACL'
+  identifiers:
+    doi: 10.18653/v1/2025.findings-naacl.114
+    openalex: W4411113004
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: ghinassi-2024
+  title: 'Recent Trends in Linear Text Segmentation: A Survey'
+  authors:
+  - Iacopo Ghinassi
+  - Lin Wang
+  - Chris Newell
+  - Matthew Purver
+  year: 2024
+  publication_type: conference-paper
+  venue: ''
+  identifiers:
+    doi: 10.18653/v1/2024.findings-emnlp.174
+    openalex: W4404781478
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: pagnoni-2025
+  title: 'Byte Latent Transformer: Patches Scale Better Than Tokens'
+  authors:
+  - Artidoro Pagnoni
+  - Ramakanth Pasunuru
+  - Pedro Rodriguez
+  - John Nguyen
+  - Benjamin Müller
+  - Margaret Li
+  - Chunting Zhou
+  - Lili Yu
+  - Jason Weston
+  - Luke Zettlemoyer
+  - Gargi Ghosh
+  - Mike Lewis
+  - Ari Holtzman
+  - Srinivasan V. Iyer
+  year: 2025
+  publication_type: conference-paper
+  venue: Annual Meeting of the Association for Computational Linguistics (ACL)
+  identifiers:
+    doi: 10.18653/v1/2025.acl-long.453
+    openalex: W4412945498
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: hwang-2025
+  title: Dynamic Chunking for End-to-End Hierarchical Sequence Modeling
+  authors:
+  - Sukjun Hwang
+  - B. Wang
+  - Gu, Albert
+  year: 2025
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.2507.07955
+    openalex: W4414942650
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
   pdf_status: missing
