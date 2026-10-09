@@ -1,0 +1,138 @@
+{
+  "n_abstracts": 40,
+  "seed": 0,
+  "rows": [
+    {
+      "model": "gemma-4-e4b",
+      "mode": "one_pass",
+      "docs": 40,
+      "errors": 0,
+      "quotes": 483,
+      "exact_rate": 1.0,
+      "non_exact": 0,
+      "cosmetic_non_exact": 0,
+      "verbatim_but_missed": 0,
+      "gap_coverage@80": 0.002323044661688284,
+      "overlap_chars@80": 0,
+      "accepted_current": {
+        "50": 1.0,
+        "60": 1.0,
+        "70": 1.0,
+        "75": 1.0,
+        "80": 1.0,
+        "85": 1.0,
+        "90": 1.0,
+        "95": 1.0
+      },
+      "accepted_partial": {
+        "50": 1.0,
+        "60": 1.0,
+        "70": 1.0,
+        "75": 1.0,
+        "80": 1.0,
+        "85": 1.0,
+        "90": 1.0,
+        "95": 1.0
+      }
+    },
+    {
+      "model": "gemma-4-e4b",
+      "mode": "two_pass",
+      "docs": 40,
+      "errors": 0,
+      "quotes": 482,
+      "exact_rate": 1.0,
+      "non_exact": 0,
+      "cosmetic_non_exact": 0,
+      "verbatim_but_missed": 0,
+      "gap_coverage@80": 0.0,
+      "overlap_chars@80": 0,
+      "accepted_current": {
+        "50": 1.0,
+        "60": 1.0,
+        "70": 1.0,
+        "75": 1.0,
+        "80": 1.0,
+        "85": 1.0,
+        "90": 1.0,
+        "95": 1.0
+      },
+      "accepted_partial": {
+        "50": 1.0,
+        "60": 1.0,
+        "70": 1.0,
+        "75": 1.0,
+        "80": 1.0,
+        "85": 1.0,
+        "90": 1.0,
+        "95": 1.0
+      }
+    },
+    {
+      "model": "qwen2.5-7b",
+      "mode": "one_pass",
+      "docs": 40,
+      "errors": 0,
+      "quotes": 400,
+      "exact_rate": 0.995,
+      "non_exact": 2,
+      "cosmetic_non_exact": 1,
+      "verbatim_but_missed": 1,
+      "gap_coverage@80": 0.05531408701783349,
+      "overlap_chars@80": 43,
+      "accepted_current": {
+        "50": 0.9975,
+        "60": 0.9975,
+        "70": 0.9975,
+        "75": 0.9975,
+        "80": 0.9975,
+        "85": 0.9975,
+        "90": 0.995,
+        "95": 0.995
+      },
+      "accepted_partial": {
+        "50": 0.9975,
+        "60": 0.9975,
+        "70": 0.9975,
+        "75": 0.9975,
+        "80": 0.9975,
+        "85": 0.9975,
+        "90": 0.9975,
+        "95": 0.995
+      }
+    },
+    {
+      "model": "qwen2.5-7b",
+      "mode": "two_pass",
+      "docs": 40,
+      "errors": 0,
+      "quotes": 488,
+      "exact_rate": 0.9938524590163934,
+      "non_exact": 3,
+      "cosmetic_non_exact": 2,
+      "verbatim_but_missed": 0,
+      "gap_coverage@80": 0.00027272727272727274,
+      "overlap_chars@80": 19,
+      "accepted_current": {
+        "50": 1.0,
+        "60": 1.0,
+        "70": 1.0,
+        "75": 1.0,
+        "80": 1.0,
+        "85": 1.0,
+        "90": 1.0,
+        "95": 0.9979508196721312
+      },
+      "accepted_partial": {
+        "50": 1.0,
+        "60": 1.0,
+        "70": 1.0,
+        "75": 1.0,
+        "80": 1.0,
+        "85": 1.0,
+        "90": 1.0,
+        "95": 1.0
+      }
+    }
+  ]
+}

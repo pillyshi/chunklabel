@@ -72,3 +72,43 @@ def test_chunk_wrappers_use_character_units() -> None:
         {11, 21}, {21}, n
     )
     assert pk(reference, reference, text) == 0.0
+
+
+def test_fidelity_counts_exact_fuzzy_unaligned() -> None:
+    from chunklabel.eval import fidelity
+    from chunklabel.types import RawChunk
+
+    text = "The project kicked off in January with a small team. Budget constraints forced a cut."
+    raw = [
+        RawChunk("a", "The project kicked off in January with a small team."),  # exact
+        RawChunk("b", "Budget constraint forced a cut."),  # one character dropped -> fuzzy
+        RawChunk("c", "completely unrelated text that will never match"),  # unaligned
+    ]
+    report = fidelity(raw, text, threshold=80)
+    assert (report.n_exact, report.n_fuzzy, report.n_unaligned) == (1, 1, 1)
+    assert report.exact_rate == pytest.approx(1 / 3)
+    assert len(report.fuzzy_scores) == 2
+    assert 80 <= report.fuzzy_scores[0] < 100
+    assert report.overlap_chars == 0
+
+
+def test_fidelity_gap_and_overlap() -> None:
+    from chunklabel.eval import fidelity
+    from chunklabel.types import RawChunk
+
+    text = "alpha beta gamma delta"
+    # "gamma" is not quoted; "beta" is quoted twice via overlapping quotes.
+    raw = [RawChunk("a", "alpha beta"), RawChunk("b", "beta"), RawChunk("c", "delta")]
+    report = fidelity(raw, text)
+    assert report.n_exact == 3
+    non_ws = len(text.replace(" ", ""))
+    assert report.gap_coverage == pytest.approx(len("gamma") / non_ws)
+    assert report.overlap_chars == len("beta")
+
+
+def test_fidelity_empty() -> None:
+    from chunklabel.eval import fidelity
+
+    report = fidelity([], "some text")
+    assert report.n_quotes == 0 and report.exact_rate == 0.0
+    assert report.gap_coverage == 1.0

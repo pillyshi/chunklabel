@@ -1,4 +1,6 @@
-"""Segmentation metrics: Pk (Beeferman et al., 1999) and WindowDiff (Pevzner & Hearst, 2002).
+"""Evaluation helpers.
+
+Segmentation metrics: Pk (Beeferman et al., 1999) and WindowDiff (Pevzner & Hearst, 2002).
 
 Both metrics slide a window of width ``k`` over a sequence of ``n`` units and count
 disagreements between the reference and predicted segmentations. Lower is better.
@@ -6,11 +8,15 @@ disagreements between the reference and predicted segmentations. Lower is better
 A segmentation is given as a collection of boundary positions: ``b`` means a new
 segment starts at unit ``b`` (so ``0 < b < n``). Chunk-based wrappers use characters
 as units.
+
+Fidelity: how faithfully LLM quotes map back onto the source text (no gold data needed).
 """
 
 from collections.abc import Collection, Sequence
+from dataclasses import dataclass, field
 
-from chunklabel.types import Chunk
+from chunklabel.alignment import align_detailed
+from chunklabel.types import Chunk, RawChunk
 
 
 def pk_from_boundaries(
@@ -86,3 +92,52 @@ def _cumulative(boundaries: Collection[int], n: int) -> list[int]:
         total += flag
         counts.append(total)
     return counts
+
+
+@dataclass
+class FidelityReport:
+    """Quote fidelity for one text. Rates are fractions of quotes; coverage is a fraction
+    of the text's non-whitespace characters."""
+
+    n_quotes: int
+    n_exact: int
+    n_fuzzy: int  # aligned by fuzzy matching at or above the threshold
+    n_unaligned: int  # best fuzzy score below the threshold
+    gap_coverage: float  # non-whitespace characters covered by no aligned quote
+    overlap_chars: int  # characters claimed by more than one aligned quote
+    fuzzy_scores: list[float] = field(default_factory=list)  # every non-exact quote's score
+
+    @property
+    def exact_rate(self) -> float:
+        return self.n_exact / self.n_quotes if self.n_quotes else 0.0
+
+    @property
+    def fuzzy_rate(self) -> float:
+        return self.n_fuzzy / self.n_quotes if self.n_quotes else 0.0
+
+    @property
+    def unaligned_rate(self) -> float:
+        return self.n_unaligned / self.n_quotes if self.n_quotes else 0.0
+
+
+def fidelity(raw_chunks: Sequence[RawChunk], text: str, threshold: int = 80) -> FidelityReport:
+    """Measure how LLM quotes align to ``text`` under the given fuzzy ``threshold``."""
+    details = align_detailed(list(raw_chunks), text, threshold)
+    spans = [d.span for d in details if d.span is not None]
+
+    covered = [False] * len(text)
+    for start, end in spans:
+        for i in range(start, min(end, len(text))):
+            covered[i] = True
+    non_ws = [i for i, ch in enumerate(text) if not ch.isspace()]
+    gap = sum(not covered[i] for i in non_ws)
+
+    return FidelityReport(
+        n_quotes=len(details),
+        n_exact=sum(d.exact for d in details),
+        n_fuzzy=sum(d.span is not None and not d.exact for d in details),
+        n_unaligned=sum(d.span is None for d in details),
+        gap_coverage=gap / len(non_ws) if non_ws else 0.0,
+        overlap_chars=sum(min(e, len(text)) - s for s, e in spans) - sum(covered),
+        fuzzy_scores=[d.score for d in details if not d.exact],
+    )

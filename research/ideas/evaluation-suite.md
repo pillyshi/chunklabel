@@ -110,3 +110,17 @@ comparability with the literature, but do not use them for decisions.
   before committing any derived files.
 - Granularity control: should `split()` take a granularity hint (e.g. target number
   of chunks) so that evaluation against a fixed-granularity gold standard is fair?
+
+## Layer 1 Results (2026-10-09)
+
+`chunklabel.eval.fidelity` and `chunklabel.alignment.align_detailed` were added. See
+`research/experiments/fidelity/README.md`.
+
+- On 40 PubMed abstracts, Gemma 4 E4B quoted 100% verbatim and Qwen2.5-7B 99.5%.
+  The larger loss is coverage: Qwen one_pass left 5.5% of the text unquoted.
+- The current fuzzy scorer has a length-dependent ceiling (`2L / (2L + 20)`). At
+  threshold 80, no non-verbatim quote under ~40 characters can align.
+- Proposed (needs a decision): switch to `fuzz.partial_ratio_alignment` with
+  default threshold 85, require exact matches for very short quotes, strip quotes
+  before the exact search, and fall back to a global exact search for out-of-order
+  verbatim quotes.

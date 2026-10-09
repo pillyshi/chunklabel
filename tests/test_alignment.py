@@ -71,3 +71,18 @@ def test_multiple_chunks() -> None:
     assert len(spans) == 3
     starts = [s[0] for s in spans]
     assert starts == sorted(starts)
+
+
+def test_align_detailed_reports_scores() -> None:
+    from chunklabel.alignment import align_detailed
+
+    raw = [
+        RawChunk(category="a", quote="The project kicked off in January with a small team"),
+        RawChunk(category="b", quote="Budget constraint forced a scope reduction in March"),
+        RawChunk(category="c", quote="completely unrelated text that will never match"),
+    ]
+    details = align_detailed(raw, TEXT, threshold=80)
+    assert details[0].exact and details[0].score == 100.0 and details[0].span == (0, 51)
+    assert not details[1].exact and 80 <= details[1].score < 100 and details[1].span is not None
+    assert details[2].span is None and details[2].score < 80
+    assert [d.span for d in details] == align(raw, TEXT, threshold=80, on_error="skip")
