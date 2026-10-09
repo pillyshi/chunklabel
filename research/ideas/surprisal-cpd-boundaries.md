@@ -88,7 +88,7 @@ An experiment first, with a library change only if the experiment supports it.
 
 ## Open Questions
 
-- **Sign of the signal.** zhao-2024 cuts after PPL *minima*, while the
+- **Sign of the signal** (resolved by the probe, see below). zhao-2024 cuts after PPL *minima*, while the
   intuition from surprisal theory is a *spike* at the first sentence of a new
   segment. A mean-shift CPD cost is agnostic to this, but a peak-picking rule
   is not. Check which pattern holds on the benchmarks.
@@ -107,3 +107,24 @@ An experiment first, with a library change only if the experiment supports it.
   better than any single series?
 - **Sentence splitting.** Which splitter to use (rule-based vs. neural sentence segmenters such as
   Segment Any Text) and whether its errors dominate boundary error.
+
+## Probe Results (2026-10-09)
+
+Details: `research/experiments/surprisal_cpd_probe/README.md` (Choi set 1, 100
+documents, Qwen2.5-0.5B, all-MiniLM-L6-v2).
+
+- **Sign resolved:** surprisal spikes (+0.97σ) and context-PMI dips (−1.11σ) on the
+  *first sentence of the new segment* only. It is an impulse, not a level shift.
+  Meta-Chunking's "cut after the minimum" rule is near random (Pk 0.43 vs 0.48).
+- Mean-shift CPD on surprisal/PMI is the wrong model (Pk ≈ 0.40). Peak picking on
+  −PMI reaches Pk 0.145 with the true K, or 0.188 with a z-threshold.
+- Embedding + cosine KCPD gives Pk 0.036 with the true K, or 0.054 penalised, at
+  ~1/100 of the compute. Naively appending PMI to the embeddings did not help.
+- Caveat: every Choi boundary is also an unrelated document's opening sentence,
+  which flatters both the spike and the embeddings.
+
+**Provisional decision:** use embedding + KCPD (PELT, `C·sqrt(T log T)`) as the
+primary prompt-free boundary source. Keep surprisal/PMI as a secondary signal
+(e.g. a boundary-confidence score, cf. `ideas/boundary-confidence-score.md`), and
+revisit it on data with related, gradual segments before dropping it. Next check:
+a non-Choi dataset (Wiki-50) and chunklabel-scale short texts.
