@@ -1,0 +1,133 @@
+{
+  "n_docs": 50,
+  "n_sentences": 3070,
+  "feature_seconds": 556.2963309288025,
+  "lm": "Qwen/Qwen2.5-0.5B",
+  "embedder": "sentence-transformers/all-MiniLM-L6-v2",
+  "boundary_profile_offsets_-2..+2": {
+    "surprisal": [
+      -0.004769370879180484,
+      -0.016262700156638978,
+      -0.20519637322974332,
+      0.010509083614109798,
+      0.04332816387415367
+    ],
+    "pmi": [
+      -0.09479587025235622,
+      -0.020508700465049004,
+      -0.22076418480894144,
+      -0.08643925948918693,
+      -0.03177324176253252
+    ]
+  },
+  "rows": [
+    {
+      "method": "random (known K)",
+      "signal": "-",
+      "pk": 0.46693826753234857,
+      "wd": 0.4936715394072757
+    },
+    {
+      "method": "KCPD known K",
+      "signal": "surprisal",
+      "pk": 0.43802950545078384,
+      "wd": 0.4733737643070035
+    },
+    {
+      "method": "KCPD known K",
+      "signal": "pmi",
+      "pk": 0.46429726121201526,
+      "wd": 0.49615427677187357
+    },
+    {
+      "method": "KCPD known K",
+      "signal": "surprisal+pmi",
+      "pk": 0.419247668403108,
+      "wd": 0.4566384666846863
+    },
+    {
+      "method": "KCPD known K",
+      "signal": "embedding",
+      "pk": 0.3691893239196421,
+      "wd": 0.3977157945047986
+    },
+    {
+      "method": "KCPD known K",
+      "signal": "embedding+pmi",
+      "pk": 0.4117519580433004,
+      "wd": 0.4413115292521875
+    },
+    {
+      "method": "KCPD pen C=0.5",
+      "signal": "surprisal",
+      "pk": 0.39683378653973156,
+      "wd": 0.4072332770412275
+    },
+    {
+      "method": "KCPD pen C=1.0",
+      "signal": "pmi",
+      "pk": 0.40185059808057294,
+      "wd": 0.40338464825978443
+    },
+    {
+      "method": "KCPD pen C=2.0",
+      "signal": "surprisal+pmi",
+      "pk": 0.4030488456675802,
+      "wd": 0.404325441412261
+    },
+    {
+      "method": "KCPD pen C=0.2",
+      "signal": "embedding",
+      "pk": 0.39812010975246986,
+      "wd": 0.40093334852315543
+    },
+    {
+      "method": "KCPD pen C=0.5",
+      "signal": "embedding+pmi",
+      "pk": 0.4019774937442295,
+      "wd": 0.4019774937442295
+    },
+    {
+      "method": "peaks known K",
+      "signal": "surprisal",
+      "pk": 0.47137997226476996,
+      "wd": 0.4879084284329579
+    },
+    {
+      "method": "peaks known K",
+      "signal": "-pmi",
+      "pk": 0.42353852888141935,
+      "wd": 0.44712207427526807
+    },
+    {
+      "method": "peaks known K",
+      "signal": "surprisal-pmi",
+      "pk": 0.4594573782685935,
+      "wd": 0.4769598273716843
+    },
+    {
+      "method": "peaks z>2.0",
+      "signal": "surprisal",
+      "pk": 0.41837462284011173,
+      "wd": 0.42097334335203634
+    },
+    {
+      "method": "peaks z>2.0",
+      "signal": "-pmi",
+      "pk": 0.40677021194829777,
+      "wd": 0.40677021194829777
+    },
+    {
+      "method": "peaks z>2.0",
+      "signal": "surprisal-pmi",
+      "pk": 0.40994013533912566,
+      "wd": 0.4122680006060769
+    },
+    {
+      "method": "minima rule theta=1.0",
+      "signal": "surprisal",
+      "pk": 0.4909614579177424,
+      "wd": 0.5575924903149629
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-"""Probe: do LM surprisal series carry segment-boundary signal on Choi's dataset?
+"""Probe: do LM surprisal series carry segment-boundary signal (Choi / Wiki-50)?
 
 See research/ideas/surprisal-cpd-boundaries.md. Not part of the chunklabel package.
 
@@ -6,7 +6,10 @@ Usage (dependencies are pulled in ad hoc, not added to the project):
 
     uv run --with torch --with transformers --with sentence-transformers --with ruptures \
         python research/experiments/surprisal_cpd_probe/probe.py \
-        --choi-dir <path to koomri/text-segmentation>/data/choi/1 --per-group 25
+        --dataset choi --data <path to koomri/text-segmentation>/data/choi/1 --per-group 25
+
+    (for Wiki-50 add --with pandas --with pyarrow and use
+    --dataset wiki50 --data <maiammar/wiki50>/data/test-00000-of-00001.parquet)
 
 Per document (a concatenation of 10 Brown-corpus excerpts, one sentence per line),
 three sentence-level series are computed:
@@ -88,6 +91,20 @@ def load_choi(root: Path, per_group: int, seed: int) -> list[Document]:
     return docs
 
 
+def load_wiki50(path: Path) -> list[Document]:
+    """Wiki-50 (Koshorek et al., 2018) as the parquet in the maiammar/wiki50 HF dataset:
+    sentences joined by <|end_sentence|>, chunk_end_positions = inclusive end indices."""
+    import pandas as pd
+
+    docs = []
+    for row in pd.read_parquet(path).itertuples():
+        sentences = [s.strip() for s in row.cleaned_text.split("<|end_sentence|>") if s.strip()]
+        ends = [int(e) for e in row.chunk_end_positions]
+        boundaries = {e + 1 for e in ends if e + 1 < len(sentences)}
+        docs.append(Document(row.filename, sentences, boundaries))
+    return docs
+
+
 class SurprisalScorer:
     def __init__(self, model_name: str, device: str) -> None:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -99,8 +116,16 @@ class SurprisalScorer:
     def _token_surprisal(self, ids: list[int]) -> np.ndarray:
         """Surprisal (nats) of ids[1:] given the preceding ids; returns len(ids) - 1 values."""
         x = torch.tensor([ids], device=self.device)
-        logits = self.model(x).logits[0, :-1]
-        return F.cross_entropy(logits, x[0, 1:], reduction="none").cpu().numpy()
+        # Project hidden states to the vocabulary in slices: full logits for a long
+        # document (~12k tokens x 151k vocab) would not fit in memory.
+        hidden = self.model.base_model(x).last_hidden_state[0, :-1]
+        head = self.model.get_output_embeddings()
+        target = x[0, 1:]
+        out = [
+            F.cross_entropy(head(hidden[a : a + 512]), target[a : a + 512], reduction="none")
+            for a in range(0, len(target), 512)
+        ]
+        return torch.cat(out).cpu().numpy()
 
     def features(self, sentences: list[str]) -> tuple[np.ndarray, np.ndarray]:
         text = " ".join(sentences)
@@ -257,7 +282,9 @@ def boundary_profile(docs: list[Document], series: list[np.ndarray], width: int 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--choi-dir", type=Path, required=True)
+    ap.add_argument("--dataset", choices=["choi", "wiki50"], default="choi")
+    ap.add_argument("--data", type=Path, required=True,
+                    help="choi: directory such as data/choi/1; wiki50: test parquet file")
     ap.add_argument("--per-group", type=int, default=25)
     ap.add_argument("--lm", default="Qwen/Qwen2.5-0.5B")
     ap.add_argument("--embedder", default="sentence-transformers/all-MiniLM-L6-v2")
@@ -268,7 +295,10 @@ def main() -> None:
     args = ap.parse_args()
 
     device = args.device
-    docs = load_choi(args.choi_dir, args.per_group, args.seed)
+    if args.dataset == "choi":
+        docs = load_choi(args.data, args.per_group, args.seed)
+    else:
+        docs = load_wiki50(args.data)
     print(f"{len(docs)} documents, device={device}")
 
     scorer = SurprisalScorer(args.lm, device)

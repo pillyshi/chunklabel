@@ -1,6 +1,6 @@
 # Prompt-free boundary detection via surprisal / embedding change point detection
 
-**Status**: Draft
+**Status**: Draft — primary approach rejected after Wiki-50 probe; see the end of this file
 
 ## Motivation
 
@@ -123,8 +123,29 @@ documents, Qwen2.5-0.5B, all-MiniLM-L6-v2).
 - Caveat: every Choi boundary is also an unrelated document's opening sentence,
   which flatters both the spike and the embeddings.
 
-**Provisional decision:** use embedding + KCPD (PELT, `C·sqrt(T log T)`) as the
+**Provisional decision (superseded by the Wiki-50 results below):** use embedding + KCPD (PELT, `C·sqrt(T log T)`) as the
 primary prompt-free boundary source. Keep surprisal/PMI as a secondary signal
 (e.g. a boundary-confidence score, cf. `ideas/boundary-confidence-score.md`), and
 revisit it on data with related, gradual segments before dropping it. Next check:
 a non-Choi dataset (Wiki-50) and chunklabel-scale short texts.
+
+## Wiki-50 Results (2026-10-09)
+
+Details: `research/experiments/surprisal_cpd_probe/README.md`, Wiki-50 section.
+
+- The Choi spike does **not** transfer. At section openings within a Wikipedia
+  article, surprisal and PMI move only slightly (≈ −0.2σ).
+- Nothing beats the no-boundary baseline (Pk 0.402) except embedding + KCPD with
+  the true K (0.369, in line with jia-2026). Every label-free way of choosing K
+  (penalty, z-threshold) degenerates to ≈ the trivial baseline or worse.
+
+**Revised decision:** prompt-free boundary detection is not good enough to replace
+LLM boundaries on realistic text. Surprisal/PMI as a primary boundary signal is
+dropped. Embedding KCPD remains useful only as a candidate generator or a
+cheap baseline.
+
+The underlying goal, extractive boundaries with no paraphrase and no alignment,
+can be met differently: number the sentences and have the LLM return **boundary
+sentence indices** instead of quotes. This is still prompting, but the output
+cannot be paraphrased. It is worth a separate idea candidate, evaluated with
+`chunklabel.eval` against the current `two_pass` mode on Wiki-50.

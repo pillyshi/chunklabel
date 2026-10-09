@@ -1,5 +1,9 @@
 # Surprisal / change point detection probe
 
+**Summary:** the strong Choi results do not transfer to Wiki-50 (see the Wiki-50
+section). On realistic text, neither surprisal/PMI nor embeddings beat a trivial
+no-boundary baseline unless the number of boundaries is given.
+
 Feasibility probe for `research/ideas/surprisal-cpd-boundaries.md`: can prompt-free
 signals place segment boundaries, and which ones?
 
@@ -24,7 +28,9 @@ Reproduce:
 ```bash
 uv run --with torch --with transformers --with sentence-transformers --with ruptures \
     python research/experiments/surprisal_cpd_probe/probe.py \
-    --choi-dir <text-segmentation>/data/choi/1 --per-group 25 --cache features.npz
+    --dataset choi --data <text-segmentation>/data/choi/1 --per-group 25 --cache features.npz
+# Wiki-50: add --with pandas --with pyarrow and
+#   --dataset wiki50 --data <maiammar/wiki50>/data/test-00000-of-00001.parquet
 ```
 
 ## Signals
@@ -88,3 +94,54 @@ grid **on the evaluation documents**, so they are optimistic.
 - One small LM, one embedder, 100 documents, no confidence intervals.
 - Only the PMI with no local context was tried (sentence alone). A short local
   window (previous sentence) is untested.
+
+## Wiki-50
+
+- Data: Wiki-50 test set (Koshorek et al., 2018) as published in the
+  [maiammar/wiki50](https://huggingface.co/datasets/maiammar/wiki50) HF dataset
+  (50 documents, 3070 sentences, 6.7 boundaries per document, mean section length 8
+  sentences, 15% of sections ≤ 2 sentences). The text is pre-cleaned: headings
+  removed, some punctuation such as hyphens stripped. The uploader is not the
+  original author. Sentence and section counts are consistent across all 50
+  documents.
+- Same models and code (`--dataset wiki50`); features took 556 s on CPU. The LM head
+  is applied in slices of 512 positions (identical output, verified) to handle
+  documents of up to ~12k tokens.
+
+Boundary profile (offset 0 = first sentence of a new section):
+
+| offset | −2 | −1 | **0** | +1 | +2 |
+|---|---|---|---|---|---|
+| surprisal | −0.00 | −0.02 | **−0.21** | +0.01 | +0.04 |
+| pmi | −0.09 | −0.02 | **−0.22** | −0.09 | −0.03 |
+
+| method | signal | Pk ↓ | WD ↓ | predicted / doc |
+|---|---|---|---|---|
+| no boundaries | – | **0.402** | 0.402 | 0 |
+| random, known K | – | 0.467 | 0.494 | 6.7 |
+| evenly spaced, known K | – | 0.491 | 0.496 | 6.7 |
+| **KCPD cosine, known K** | **embedding** | **0.369** | **0.398** | 6.7 |
+| KCPD linear, known K | surprisal + pmi | 0.419 | 0.457 | 6.7 |
+| peaks, known K | −pmi | 0.424 | 0.447 | 6.7 |
+| peaks, known K | surprisal | 0.471 | 0.488 | 6.7 |
+| KCPD cosine, penalised C = 0.1 | embedding | 0.432 | 0.472 | 3.8 |
+| KCPD cosine, penalised C = 0.2 | embedding | 0.398 | 0.401 | 0.4 |
+| peaks z > 1.0 | −pmi | 0.453 | 0.492 | 6.8 |
+| Meta-Chunking minima rule | surprisal | 0.491 | 0.558 | – |
+
+On Choi, the same baselines are: no boundaries 0.470, evenly spaced 0.321.
+
+### Findings on Wiki-50
+
+1. **The surprisal spike disappears.** At section openings within one article,
+   surprisal is slightly *lower* (−0.21σ), not higher. The Choi spike was mainly a
+   "new unrelated document" effect, as the Choi caveat suspected.
+2. **Only embeddings with an oracle K beat the trivial baseline** (0.369 vs 0.402).
+   This matches the Embed-KCPD paper's Wiki-50 numbers (Pk 0.38–0.42 across
+   encoders) [jia-2026], so the pipeline reproduces the literature.
+3. **Choosing the number of boundaries is the unsolved part.** Every penalised or
+   thresholded variant either collapses to "almost no boundaries" (≈ trivial
+   baseline) or over-segments and is worse. The Choi-tuned C (0.1) transfers badly.
+4. For reference, supervised models reach Pk ≈ 0.16–0.18 on Wiki-50 (CATS,
+   TextSeg, as reported in [jia-2026]). Prompt-free unsupervised signals are far
+   from that.
