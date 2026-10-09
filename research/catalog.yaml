@@ -466,3 +466,117 @@ papers:
   rationale: ''
   note_status: pending
   pdf_status: missing
+- key: fournier-2013
+  title: Evaluating Text Segmentation using Boundary Edit Distance
+  authors:
+  - Chris Fournier
+  year: 2013
+  publication_type: article
+  venue: ''
+  identifiers:
+    openalex: W2154593091
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: fournier-2012
+  title: Segmentation Similarity and Agreement
+  authors:
+  - Chris Fournier
+  - Diana Zaiu Inkpen
+  year: 2012
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.1204.2847
+    openalex: W2142243548
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: rosenberg-2007
+  title: 'V-Measure: A Conditional Entropy-Based External Cluster Evaluation Measure'
+  authors:
+  - Andrew Rosenberg
+  - Julia Hirschberg
+  year: 2007
+  publication_type: article
+  venue: ''
+  identifiers:
+    openalex: W2138615112
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: vinh-2010
+  title: 'Information Theoretic Measures for Clusterings Comparison: Variants, Properties, Normalization and Correction for Chance'
+  authors:
+  - Nguyễn Xuân Vinh
+  - Julien Epps
+  - James A Bailey
+  year: 2010
+  publication_type: article
+  venue: Minerva Access (University of Melbourne)
+  identifiers:
+    doi: 10.5555/1756006.1953024
+    openalex: W2162833336
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: dernoncourt-2017
+  title: 'PubMed 200k RCT: a Dataset for Sequential Sentence Classification in Medical Abstracts'
+  authors:
+  - Franck Dernoncourt
+  - Ji Young Lee
+  year: 2017
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.1710.06071
+    openalex: W2766801974
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: arnold-2019
+  title: 'SECTOR: A Neural Model for Coherent Topic Segmentation and Classification'
+  authors:
+  - Sebastian Arnold
+  - Rudolf Schneider
+  - Philippe Cudré-Mauroux
+  - Felix A. Gers
+  - Alexander Löser
+  year: 2019
+  publication_type: article
+  venue: Transactions of the Association for Computational Linguistics
+  identifiers:
+    doi: 10.1162/tacl_a_00261
+    openalex: W2914694065
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing
+- key: mackenzie-2025
+  title: Topic Segmentation Using Generative Language Models
+  authors:
+  - Pierre Mackenzie
+  - Maya Shah
+  - Patrick Frenett
+  year: 2025
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.2601.03276
+    openalex: W7119492519
+  relevance: to_classify
+  priority: to_review
+  rationale: ''
+  note_status: pending
+  pdf_status: missing

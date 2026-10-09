@@ -1,6 +1,7 @@
 # Evaluation metrics: Pk and WindowDiff
 
-**Status**: Draft
+**Status**: Implemented (`chunklabel/eval.py`, commit 6402c9b). Pk/WD turned out to
+fit chunklabel poorly; the follow-up is `ideas/evaluation-suite.md`.
 
 ## Motivation
 
