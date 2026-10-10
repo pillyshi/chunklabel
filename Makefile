@@ -22,12 +22,12 @@ LLAMA_CPP_VERSION ?= 0.3.28
 help:
 	@sed -n '3,8p' Makefile | sed 's/^# \{0,1\}//'
 
-install: guard-HOST
+install: sync
 	$(call remote-exec,uv sync)
 
 setup: install install-llama-cpp
 
-install-llama-cpp: guard-HOST
+install-llama-cpp: sync
 	ssh $(HOST) "bash -l -c 'cd $(REMOTE_DIR) && \
 		CUDA_HOME=/usr/local/cuda-$(CUDA_VERSION) \
 		PATH=/usr/local/cuda-$(CUDA_VERSION)/bin:\$$HOME/.local/bin:\$$PATH \
