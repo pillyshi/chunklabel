@@ -22,7 +22,7 @@ from collections.abc import Collection, Hashable, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
-from chunklabel.alignment import align_detailed
+from chunklabel.alignment import AlignmentDetail, align_detailed
 from chunklabel.types import Chunk, RawChunk
 
 
@@ -129,7 +129,11 @@ class FidelityReport:
 
 def fidelity(raw_chunks: Sequence[RawChunk], text: str, threshold: int = 85) -> FidelityReport:
     """Measure how LLM quotes align to ``text`` under the given fuzzy ``threshold``."""
-    details = align_detailed(list(raw_chunks), text, threshold)
+    return fidelity_from_details(align_detailed(list(raw_chunks), text, threshold), text)
+
+
+def fidelity_from_details(details: Sequence[AlignmentDetail], text: str) -> FidelityReport:
+    """Build a FidelityReport from alignment results that were already computed."""
     spans = [d.span for d in details if d.span is not None]
 
     covered = [False] * len(text)

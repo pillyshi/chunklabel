@@ -167,3 +167,28 @@ def test_two_pass_whitespace_chunk_not_sent_to_llm() -> None:
     assert any(c.category == "whitespace" for c in chunks)
     assert any(c.category == "intro" for c in chunks)
     assert any(c.category == "conclusion" for c in chunks)
+
+
+def test_split_with_report_matches_split_and_reports_exact_quotes() -> None:
+    labeler = ChunkLabeler(backend=MockBackend())
+    chunks, report = labeler.split_with_report(TEXT)
+    assert chunks == labeler.split(TEXT)
+    assert (report.n_quotes, report.n_exact, report.n_fuzzy, report.n_unaligned) == (3, 3, 0, 0)
+    # "Despite the setbacks, " is not quoted by the mock backend.
+    assert report.gap_coverage > 0
+
+
+def test_split_with_report_counts_unaligned_instead_of_raising() -> None:
+    labeler = ChunkLabeler(backend=MockBackendWithBadChunk(), on_align_error="raise")
+    chunks, report = labeler.split_with_report(TEXT)
+    assert report.n_unaligned == 1
+    assert report.unaligned_rate == 1 / 3
+    assert "".join(c.quote for c in chunks) == TEXT
+    assert "bad" not in {c.category for c in chunks}
+
+
+def test_split_with_report_two_pass() -> None:
+    labeler = ChunkLabeler(backend=MockTwoPassBackend())
+    chunks, report = labeler.split_with_report(TEXT, mode="two_pass")
+    assert chunks == labeler.split(TEXT, mode="two_pass")
+    assert report.n_quotes == 3 and report.exact_rate == 1.0

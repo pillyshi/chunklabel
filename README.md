@@ -122,6 +122,39 @@ labeler = ChunkLabeler(
 )
 ```
 
+## Checking fidelity on your model and data
+
+How faithfully the LLM quotes the source depends on the model and the text. Before
+relying on a setup, run `split_with_report` on a few representative texts:
+
+```python
+from chunklabel import ChunkLabeler
+
+labeler = ChunkLabeler(client=my_client)
+for text in sample_texts:
+    chunks, report = labeler.split_with_report(text)
+    print(
+        f"verbatim {report.exact_rate:.0%}  fuzzy {report.fuzzy_rate:.0%}  "
+        f"unaligned {report.unaligned_rate:.0%}  not quoted {report.gap_coverage:.0%}"
+    )
+```
+
+| field | meaning |
+|---|---|
+| `exact_rate` | quotes found verbatim in the source |
+| `fuzzy_rate` | quotes that differ from the source but matched at or above `fuzzy_threshold` |
+| `unaligned_rate` | quotes that could not be matched (dropped; their text becomes `uncategorized`) |
+| `gap_coverage` | share of the source's non-whitespace characters not covered by any quote |
+| `fuzzy_scores` | match score of every non-verbatim quote, to judge `fuzzy_threshold` |
+
+`split_with_report` returns the same chunks as `split`, but never raises on alignment
+errors: unaligned quotes are counted in the report instead. For a single text you can
+also call `chunklabel.eval.fidelity(raw_chunks, text)` directly.
+
+As a reference point, on 40 PubMed abstracts Gemma 4 E4B quoted 100% verbatim with
+almost no gaps. Qwen2.5-7B quoted 99% verbatim but left 5–7% of the text unquoted
+(`benchmarks/fidelity`).
+
 ## Using local LLMs
 
 **llama.cpp (in-process)**
