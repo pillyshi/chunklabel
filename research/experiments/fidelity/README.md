@@ -111,3 +111,16 @@ any threshold ≥ 60 by either scorer):
 Caveats: PubMed abstracts only, two 4–8B models, English, and synthetic edits as a
 proxy for paraphrase. Longer documents (Wiki-50 runs earlier produced long quotes)
 and Japanese text are untested.
+
+## Adopted (2026-10-10)
+
+All five proposals were implemented in `chunklabel/alignment.py`:
+`partial_ratio_alignment` scoring with span-edge refinement, default threshold 85,
+exact match required below 16 characters, quotes stripped before searching, and a
+global exact search for out-of-order verbatim quotes. On the 40-abstract outputs
+above, the unaligned quote is gone (Qwen one_pass: 0 unaligned, gap 5.4%), and the
+trailing-space quotes now match exactly.
+
+Note: `run.py report` uses the library's `align_detailed`, so rerunning it now
+reflects the new alignment. The committed `results.json` was produced with the old
+one. `threshold_sim.py` keeps a copy of the old scorer, so its output is unchanged.

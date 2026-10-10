@@ -73,6 +73,14 @@ Span post-processing  (lenient mode)
 Chunk list
 ```
 
+### Alignment
+
+Each quote (with surrounding whitespace stripped) is located in the source text:
+
+1. **Exact match**, searching forward from the previous quote.
+2. **Exact match anywhere**, for a verbatim quote the LLM emitted out of order.
+3. **Fuzzy match**: the best-matching substring (`rapidfuzz.fuzz.partial_ratio_alignment`), accepted if its score is at least `fuzzy_threshold`. Quotes shorter than 16 characters must match exactly, since short phrases produce spurious fuzzy matches.
+
 ### Lenient mode
 
 - **Gaps**: unassigned spans between chunks are filled automatically as `category="uncategorized"`
@@ -110,7 +118,7 @@ Normalization runs offline over the full category inventory, so the LLM can make
 ```python
 labeler = ChunkLabeler(
     client="gpt-4o",     # model name string, or a BaseLLMClient instance
-    fuzzy_threshold=80,  # match threshold for rapidfuzz alignment (0–100)
+    fuzzy_threshold=85,  # match threshold for rapidfuzz alignment (0–100)
 )
 ```
 

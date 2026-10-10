@@ -5,8 +5,9 @@ abstract. They should be accepted.
 Negatives: sentences from *other* abstracts (same domain), aligned against the abstract.
 They should be rejected.
 
-Compares chunklabel's current scorer (fuzz.ratio against a window of len(quote) + 20)
-with fuzz.partial_ratio_alignment, by quote length.
+Compares chunklabel's original scorer ("current" below: fuzz.ratio against a window of
+len(quote) + 20) with fuzz.partial_ratio_alignment, which chunklabel uses since this
+study, by quote length.
 
     uv run python research/experiments/fidelity/threshold_sim.py \
         --data <pubmed-rct>/PubMed_20k_RCT/test.txt
@@ -25,8 +26,6 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 from run import load_pubmed  # noqa: E402
 
-from chunklabel.alignment import align_detailed  # noqa: E402
-from chunklabel.types import RawChunk  # noqa: E402
 
 HERE = Path(__file__).parent
 LENGTH_BINS = [(0, 40), (40, 80), (80, 160), (160, 10_000)]
@@ -59,7 +58,16 @@ def insert_words(s: str, rng: random.Random) -> str:
 
 
 def current_score(q: str, text: str) -> float:
-    return align_detailed([RawChunk("", q)], text, threshold=0)[0].score
+    """The scorer chunklabel used before this study (fuzz.ratio against a window of
+    len(q) + 20 characters), kept here so the comparison stays reproducible."""
+    from rapidfuzz import fuzz
+
+    if q in text:
+        return 100.0
+    window = len(q) + 20
+    return max(
+        fuzz.ratio(q, text[i : i + window]) for i in range(max(1, len(text) - len(q) + 1))
+    )
 
 
 def partial_score(q: str, text: str) -> float:

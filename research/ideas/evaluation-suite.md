@@ -120,7 +120,7 @@ comparability with the literature, but do not use them for decisions.
   The larger loss is coverage: Qwen one_pass left 5.5% of the text unquoted.
 - The current fuzzy scorer has a length-dependent ceiling (`2L / (2L + 20)`). At
   threshold 80, no non-verbatim quote under ~40 characters can align.
-- Proposed (needs a decision): switch to `fuzz.partial_ratio_alignment` with
+- Adopted on 2026-10-10 (see the experiment README): switch to `fuzz.partial_ratio_alignment` with
   default threshold 85, require exact matches for very short quotes, strip quotes
   before the exact search, and fall back to a global exact search for out-of-order
   verbatim quotes.

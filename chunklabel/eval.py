@@ -120,7 +120,7 @@ class FidelityReport:
         return self.n_unaligned / self.n_quotes if self.n_quotes else 0.0
 
 
-def fidelity(raw_chunks: Sequence[RawChunk], text: str, threshold: int = 80) -> FidelityReport:
+def fidelity(raw_chunks: Sequence[RawChunk], text: str, threshold: int = 85) -> FidelityReport:
     """Measure how LLM quotes align to ``text`` under the given fuzzy ``threshold``."""
     details = align_detailed(list(raw_chunks), text, threshold)
     spans = [d.span for d in details if d.span is not None]

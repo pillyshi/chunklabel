@@ -15,7 +15,7 @@ class ChunkLabeler:
     def __init__(
         self,
         client: Union[BaseLLMClient, str] = "gpt-4o",
-        fuzzy_threshold: int = 80,
+        fuzzy_threshold: int = 85,
         on_align_error: Literal["raise", "skip"] = "raise",
         timeout: float | None = 120.0,
         backend: LLMBackend | None = None,
