@@ -1,6 +1,6 @@
 # Revisit the "gaps are acceptable" rule in the split prompts
 
-**Status**: Draft
+**Status**: Adopted 2026-10-10 (see `benchmarks/fidelity/README.md`, last section)
 
 ## Motivation
 

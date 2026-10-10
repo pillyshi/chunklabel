@@ -83,7 +83,7 @@ Each quote (with surrounding whitespace stripped) is located in the source text:
 
 ### Lenient mode
 
-- **Gaps**: unassigned spans between chunks are filled automatically as `category="uncategorized"`
+- **Gaps**: the prompt asks the LLM to cover the whole text. Any part it skips, or whose quote fails to align, is filled automatically as `category="uncategorized"`. Check how often this happens with `split_with_report` (`gap_coverage`).
 - **Overlaps**: the earlier chunk takes priority; the later chunk's start is pushed forward
 
 ## Category normalization (offline)

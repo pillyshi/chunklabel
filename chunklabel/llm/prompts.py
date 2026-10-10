@@ -5,7 +5,7 @@ Rules:
 - Each "quote" must be a verbatim substring of the input text. Do not paraphrase or modify.
 - Categories are free-form, short, lowercase labels that describe what each chunk is about.
 - Preserve the order of chunks as they appear in the source text.
-- Gaps between chunks are acceptable; do not force the entire text into chunks.
+- Cover the whole text: every part of the input must belong to exactly one chunk.
 """
 
 NORMALIZE_SYSTEM = """\
@@ -20,7 +20,7 @@ You are a text segmentation assistant. Identify the boundaries of semantically c
 Rules:
 - Each "quote" must be a verbatim substring of the input text. Do not paraphrase or modify.
 - Preserve the order of spans as they appear in the source text.
-- Gaps between spans are acceptable; do not force the entire text into spans.
+- Cover the whole text: every part of the input must belong to exactly one span.
 """
 
 LABEL_SYSTEM = """\

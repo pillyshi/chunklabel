@@ -124,3 +124,29 @@ trailing-space quotes now match exactly.
 Note: `run.py report` uses the library's `align_detailed`, so rerunning it now
 reflects the new alignment. The committed `results.json` was produced with the old
 one. `threshold_sim.py` keeps a copy of the old scorer, so its output is unchanged.
+
+## Replacing "gaps are acceptable" with a full-coverage rule (2026-10-10)
+
+Both split prompts said "Gaps between chunks/spans are acceptable; do not force the
+entire text into chunks." It had been there since the first implementation with no
+recorded rationale. It was replaced with "Cover the whole text: every part of the input
+must belong to exactly one chunk/span." Same 40 abstracts, both models, both modes.
+Baselines: one_pass after the example-label removal, and the original two_pass run
+(the boundary prompt was otherwise unchanged).
+
+| mode | model | verbatim | fuzzy | unaligned | gap coverage | chunks / doc |
+|---|---|---|---|---|---|---|
+| one_pass | Qwen2.5-7B | 99.2% → 99.3% | 3 → 3 | 0 → 0 | 6.7% → 4.7% | 9.8 → 10.1 |
+| one_pass | Gemma 4 E4B | 100% → 100% | 0 → 0 | 0 → 0 | 0.1% → 0.0% | 12.1 → 12.2 |
+| two_pass | Qwen2.5-7B | 99.8% → 99.6% | 1 → 2 | 0 → 0 | 0% → 0% | 12.2 → 12.2 |
+| two_pass | Gemma 4 E4B | 100% → 100% | 0 → 0 | 0 → 0 | 0% → 0% | 12.1 → 12.1 |
+
+- **No fidelity cost.** Asking for full coverage did not make the models paraphrase
+  more. The new non-verbatim quotes are near-verbatim (scores 98–99).
+- Qwen one_pass gaps went down, but the paired difference is not significant
+  (bootstrap 95% CI of the per-abstract change: [−6.1, +0.3] points).
+- The remaining Qwen gaps (28 spans) are model behaviour: sentences skipped in the
+  middle (25), and one abstract where only the first sentence was emitted (1,780
+  characters missing). The instruction does not explain them.
+- Adopted: the rule has no fidelity cost and states the intended behaviour. Remaining
+  gaps are left to the model, and users can check them with `split_with_report`.
