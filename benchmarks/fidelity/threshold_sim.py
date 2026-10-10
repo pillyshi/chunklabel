@@ -9,7 +9,7 @@ Compares chunklabel's original scorer ("current" below: fuzz.ratio against a win
 len(quote) + 20) with fuzz.partial_ratio_alignment, which chunklabel uses since this
 study, by quote length.
 
-    uv run python research/experiments/fidelity/threshold_sim.py \
+    uv run python benchmarks/fidelity/threshold_sim.py \
         --data <pubmed-rct>/PubMed_20k_RCT/test.txt
 """
 

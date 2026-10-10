@@ -8,7 +8,7 @@ from chunklabel.types import RawChunk
 
 
 # Quotes shorter than this must match verbatim: short phrases find spurious fuzzy
-# matches too easily (see research/experiments/fidelity/README.md).
+# matches too easily (see benchmarks/fidelity/README.md).
 MIN_FUZZY_CHARS = 16
 
 

@@ -3,12 +3,12 @@
 See research/ideas/evaluation-suite.md (layer 1). Not part of the chunklabel package.
 
     # 1. generate raw chunks (expensive; resumable)
-    uv run --extra llamacpp python research/experiments/fidelity/run.py generate \
+    uv run --extra llamacpp python benchmarks/fidelity/run.py generate \
         --data <pubmed-rct>/PubMed_20k_RCT/test.txt --model <path.gguf> --name qwen2.5-7b \
         --out <outside the repo>/raw.jsonl
 
     # 2. report fidelity under different alignment settings (cheap)
-    uv run python research/experiments/fidelity/run.py report \
+    uv run python benchmarks/fidelity/run.py report \
         --data <pubmed-rct>/PubMed_20k_RCT/test.txt --out <same>/raw.jsonl
 
 The raw outputs contain abstract text (dataset license unstated), so they are written

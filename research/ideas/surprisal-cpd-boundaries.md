@@ -110,7 +110,7 @@ An experiment first, with a library change only if the experiment supports it.
 
 ## Probe Results (2026-10-09)
 
-Details: `research/experiments/surprisal_cpd_probe/README.md` (Choi set 1, 100
+Details: `benchmarks/surprisal_cpd_probe/README.md` (Choi set 1, 100
 documents, Qwen2.5-0.5B, all-MiniLM-L6-v2).
 
 - **Sign resolved:** surprisal spikes (+0.97σ) and context-PMI dips (−1.11σ) on the
@@ -131,7 +131,7 @@ a non-Choi dataset (Wiki-50) and chunklabel-scale short texts.
 
 ## Wiki-50 Results (2026-10-09)
 
-Details: `research/experiments/surprisal_cpd_probe/README.md`, Wiki-50 section.
+Details: `benchmarks/surprisal_cpd_probe/README.md`, Wiki-50 section.
 
 - The Choi spike does **not** transfer. At section openings within a Wikipedia
   article, surprisal and PMI move only slightly (≈ −0.2σ).

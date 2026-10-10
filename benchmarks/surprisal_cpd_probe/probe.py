@@ -5,7 +5,7 @@ See research/ideas/surprisal-cpd-boundaries.md. Not part of the chunklabel packa
 Usage (dependencies are pulled in ad hoc, not added to the project):
 
     uv run --with torch --with transformers --with sentence-transformers --with ruptures \
-        python research/experiments/surprisal_cpd_probe/probe.py \
+        python benchmarks/surprisal_cpd_probe/probe.py \
         --dataset choi --data <path to koomri/text-segmentation>/data/choi/1 --per-group 25
 
     (for Wiki-50 add --with pandas --with pyarrow and use

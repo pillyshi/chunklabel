@@ -114,7 +114,7 @@ comparability with the literature, but do not use them for decisions.
 ## Layer 1 Results (2026-10-09)
 
 `chunklabel.eval.fidelity` and `chunklabel.alignment.align_detailed` were added. See
-`research/experiments/fidelity/README.md`.
+`benchmarks/fidelity/README.md`.
 
 - On 40 PubMed abstracts, Gemma 4 E4B quoted 100% verbatim and Qwen2.5-7B 99.5%.
   The larger loss is coverage: Qwen one_pass left 5.5% of the text unquoted.

@@ -27,7 +27,7 @@ Reproduce:
 
 ```bash
 uv run --with torch --with transformers --with sentence-transformers --with ruptures \
-    python research/experiments/surprisal_cpd_probe/probe.py \
+    python benchmarks/surprisal_cpd_probe/probe.py \
     --dataset choi --data <text-segmentation>/data/choi/1 --per-group 25 --cache features.npz
 # Wiki-50: add --with pandas --with pyarrow and
 #   --dataset wiki50 --data <maiammar/wiki50>/data/test-00000-of-00001.parquet
