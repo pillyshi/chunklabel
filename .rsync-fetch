@@ -1,0 +1,10 @@
+# Filters for `make fetch` (read as --filter='. .rsync-fetch', followed by
+# --filter='- *'). Only what is included here is pulled back.
+#
+# Write raw model outputs and datasets under outputs/ on the remote (gitignored;
+# they can contain source text). Aggregate results stay in benchmarks/*/.
++ outputs/
++ outputs/**
++ benchmarks/
++ benchmarks/*/
++ benchmarks/*/*.json
