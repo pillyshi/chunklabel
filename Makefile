@@ -27,10 +27,16 @@ install: sync
 
 setup: install install-llama-cpp
 
+# --no-cache: uv caches built wheels by version only, ignoring CMAKE_ARGS, so a cached
+# CPU-only wheel would otherwise be reused silently. The last step fails if the
+# result cannot offload to the GPU.
 install-llama-cpp: sync
 	ssh $(HOST) "bash -l -c 'cd $(REMOTE_DIR) && \
 		CUDA_HOME=/usr/local/cuda-$(CUDA_VERSION) \
 		PATH=/usr/local/cuda-$(CUDA_VERSION)/bin:\$$HOME/.local/bin:\$$PATH \
 		CMAKE_ARGS=\"-DGGML_CUDA=on -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/gcc-$(GCC_VERSION)\" \
 		CC=/usr/bin/gcc-$(GCC_VERSION) CXX=/usr/bin/g++-$(GCC_VERSION) \
-		uv pip install \"llama-cpp-python==$(LLAMA_CPP_VERSION)\" --no-binary llama-cpp-python'"
+		uv pip install \"llama-cpp-python==$(LLAMA_CPP_VERSION)\" --no-binary llama-cpp-python \
+			--no-cache --reinstall-package llama-cpp-python && \
+		.venv/bin/python -c \"import llama_cpp, sys; sys.exit(0 if llama_cpp.llama_supports_gpu_offload() else 1)\" && \
+		echo llama-cpp-python: CUDA build OK'"
