@@ -1,6 +1,6 @@
 # Evaluation suite for chunklabel: fidelity, label-aware agreement, tolerant boundaries
 
-**Status**: Draft
+**Status**: Layer 1 adopted; layers 2–3 kept as diagnostics only (decision 2026-10-10, see the end of this file)
 
 ## Motivation
 
@@ -138,3 +138,20 @@ V-measure, ARI on characters; cross-checked against scikit-learn). See
 - Qwen reused the prompt's example labels (`initiation`, `outcome`) 20 times each.
 - Next levers: a document-level label set, normalisation, removing prompt-example
   leakage. Each can be measured with this benchmark.
+
+## Decision (2026-10-10): evaluate fidelity, not chunking quality
+
+- chunklabel deliberately leaves granularity and the label vocabulary to the LLM, and
+  whether a chunking is "good" depends on the downstream task. Scoring against a gold
+  segmentation imposes one granularity and label scheme, so layers 2–3 are **not
+  optimisation targets**. Example: removing the prompt's example labels lowered ARI
+  against PubMed roles. That reflects closeness to one particular grouping, not a
+  regression.
+- **Layer 1 (fidelity) is chunklabel's responsibility**: verbatim quotes, alignment,
+  and coverage matter for every downstream use. The next target is the coverage gap.
+- Evaluating against gold labels is **supervised chunking**, which is essentially span
+  classification. It belongs with a future "given label set" feature, not with the
+  schema-free mode. `benchmarks/label_agreement` would apply to that feature as is.
+- Possibly worth measuring later, since it is task-independent: stability, i.e. the
+  same input giving the same chunks and labels across runs. Low priority while
+  decoding is greedy (temperature 0).

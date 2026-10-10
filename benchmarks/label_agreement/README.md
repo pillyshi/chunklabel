@@ -1,5 +1,10 @@
 # Label-aware agreement with PubMed RCT roles
 
+**Status: diagnostic only.** Chunking quality is task-dependent, so these scores are
+not optimisation targets for chunklabel's schema-free mode. They would become targets
+for a future "given label set" (supervised chunking) feature. See the decision in
+`research/ideas/evaluation-suite.md`.
+
 Layer 2 of `research/ideas/evaluation-suite.md`: do chunklabel's chunks and free-form
 categories group the text the way a reference with labeled segments does?
 
