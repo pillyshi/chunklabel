@@ -112,3 +112,64 @@ def test_fidelity_empty() -> None:
     report = fidelity([], "some text")
     assert report.n_quotes == 0 and report.exact_rate == 0.0
     assert report.gap_coverage == 1.0
+
+
+def test_agreement_ignores_label_names() -> None:
+    from chunklabel.eval import agreement
+
+    a = agreement(["x", "x", "y", "y", "z"], ["A", "A", "B", "B", "C"])
+    assert (a.homogeneity, a.completeness, a.v_measure, a.ari) == pytest.approx((1, 1, 1, 1))
+
+
+def test_agreement_finer_partition_keeps_homogeneity_but_loses_completeness() -> None:
+    from chunklabel.eval import agreement
+
+    # Each reference group is split in two: still pure, but no longer complete.
+    a = agreement([1, 1, 2, 2, 3, 3, 4, 4], ["A", "A", "A", "A", "B", "B", "B", "B"])
+    assert a.homogeneity == pytest.approx(1.0)
+    assert a.completeness == pytest.approx(0.5)
+    assert 0 < a.ari < 1
+
+
+def test_agreement_matches_reference_values() -> None:
+    from chunklabel.eval import agreement
+
+    # Values from scikit-learn 1.x (homogeneity_completeness_v_measure, adjusted_rand_score).
+    a = agreement([0, 0, 1, 1, 1, 2], ["a", "a", "a", "b", "b", "b"])
+    assert a.homogeneity == pytest.approx(0.5408520829727552)
+    assert a.completeness == pytest.approx(0.370662957923173)
+    assert a.v_measure == pytest.approx(0.43986950051102847)
+    assert a.ari == pytest.approx(0.11764705882352941)
+
+
+def test_agreement_rejects_bad_input() -> None:
+    from chunklabel.eval import agreement
+
+    with pytest.raises(ValueError):
+        agreement([1, 2], [1])
+    with pytest.raises(ValueError):
+        agreement([], [])
+
+
+def test_chunk_agreement_by_category_and_by_chunk() -> None:
+    from chunklabel.eval import chunk_agreement
+
+    text = "Aaa aaa. Bbb bbb. Ccc ccc."
+    reference = [_chunk(text, 0, 8, "intro"), _chunk(text, 9, 17, "body"), _chunk(text, 18, 26, "end")]
+    # Same boundaries, but the first and last chunk share a category.
+    predicted = [_chunk(text, 0, 8, "frame"), _chunk(text, 9, 17, "core"), _chunk(text, 18, 26, "frame")]
+    by_category = chunk_agreement(predicted, reference, text)
+    by_chunk = chunk_agreement(predicted, reference, text, by="chunk")
+    assert by_category.completeness == pytest.approx(1.0)
+    assert by_category.homogeneity < 1.0
+    assert by_chunk.v_measure == pytest.approx(1.0)
+
+
+def test_chunk_agreement_uncovered_characters_form_their_own_group() -> None:
+    from chunklabel.eval import chunk_agreement
+
+    text = "Aaa aaa. Bbb bbb."
+    reference = [_chunk(text, 0, 8, "a"), _chunk(text, 9, 17, "b")]
+    predicted = [_chunk(text, 0, 8, "a")]  # second sentence not covered
+    a = chunk_agreement(predicted, reference, text)
+    assert a.v_measure == pytest.approx(1.0)  # the uncovered group still matches "b"

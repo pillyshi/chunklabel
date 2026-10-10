@@ -10,10 +10,17 @@ segment starts at unit ``b`` (so ``0 < b < n``). Chunk-based wrappers use charac
 as units.
 
 Fidelity: how faithfully LLM quotes map back onto the source text (no gold data needed).
+
+Agreement: how well a chunking with free-form categories matches a reference chunking,
+compared as two partitions of the text's characters (Rosenberg & Hirschberg, 2007;
+Hubert & Arabie, 1985). Category names never need to match.
 """
 
-from collections.abc import Collection, Sequence
+import math
+from collections import Counter
+from collections.abc import Collection, Hashable, Sequence
 from dataclasses import dataclass, field
+from typing import Literal
 
 from chunklabel.alignment import align_detailed
 from chunklabel.types import Chunk, RawChunk
@@ -141,3 +148,84 @@ def fidelity(raw_chunks: Sequence[RawChunk], text: str, threshold: int = 85) -> 
         overlap_chars=sum(min(e, len(text)) - s for s, e in spans) - sum(covered),
         fuzzy_scores=[d.score for d in details if not d.exact],
     )
+
+
+@dataclass
+class Agreement:
+    """Agreement between a predicted and a reference partition (1.0 = identical)."""
+
+    homogeneity: float  # each predicted group holds a single reference group
+    completeness: float  # each reference group falls in a single predicted group
+    v_measure: float  # harmonic mean of homogeneity and completeness
+    ari: float  # adjusted Rand index: 0 for chance agreement, 1 for identical
+
+
+def agreement(predicted: Sequence[Hashable], reference: Sequence[Hashable]) -> Agreement:
+    """Compare two labelings of the same items as partitions; label names are ignored."""
+    if len(predicted) != len(reference):
+        raise ValueError("predicted and reference must have the same length")
+    n = len(reference)
+    if n == 0:
+        raise ValueError("cannot compare empty labelings")
+    joint = Counter(zip(predicted, reference))
+    pred_counts = Counter(predicted)
+    ref_counts = Counter(reference)
+
+    def entropy(counts: Collection[int]) -> float:
+        return -sum(c / n * math.log(c / n) for c in counts)
+
+    h_ref, h_pred = entropy(ref_counts.values()), entropy(pred_counts.values())
+    # Conditional entropies H(ref | pred) and H(pred | ref).
+    h_ref_given_pred = -sum(c / n * math.log(c / pred_counts[p]) for (p, _), c in joint.items())
+    h_pred_given_ref = -sum(c / n * math.log(c / ref_counts[r]) for (_, r), c in joint.items())
+    homogeneity = 1.0 if h_ref == 0 else 1 - h_ref_given_pred / h_ref
+    completeness = 1.0 if h_pred == 0 else 1 - h_pred_given_ref / h_pred
+    v = (
+        0.0 if homogeneity + completeness == 0
+        else 2 * homogeneity * completeness / (homogeneity + completeness)
+    )
+
+    def pairs(k: int) -> int:
+        return k * (k - 1) // 2
+
+    index = sum(pairs(c) for c in joint.values())
+    sum_pred = sum(pairs(c) for c in pred_counts.values())
+    sum_ref = sum(pairs(c) for c in ref_counts.values())
+    expected = sum_pred * sum_ref / pairs(n) if n > 1 else 0.0
+    max_index = (sum_pred + sum_ref) / 2
+    ari = 1.0 if max_index == expected else (index - expected) / (max_index - expected)
+    return Agreement(homogeneity, completeness, v, ari)
+
+
+def char_labels(
+    chunks: Sequence[Chunk], n: int, by: Literal["category", "chunk"] = "category"
+) -> list[Hashable | None]:
+    """Label of each character position (None where no chunk covers it).
+
+    ``by="category"`` groups characters by chunk category, so separate chunks with the
+    same category form one group. ``by="chunk"`` makes every chunk its own group, which
+    compares segmentations only.
+    """
+    labels: list[Hashable | None] = [None] * n
+    for i, c in enumerate(chunks):
+        key: Hashable = c.category if by == "category" else i
+        for j in range(max(0, c.start), min(c.end, n)):
+            labels[j] = key
+    return labels
+
+
+def chunk_agreement(
+    predicted: Sequence[Chunk],
+    reference: Sequence[Chunk],
+    text: str,
+    by: Literal["category", "chunk"] = "category",
+) -> Agreement:
+    """Character-level agreement between two chunkings of ``text``.
+
+    Only non-whitespace characters covered by the reference are compared. Characters no
+    predicted chunk covers form one extra group of their own.
+    """
+    pred = char_labels(predicted, len(text), by)
+    ref = char_labels(reference, len(text), by)
+    keep = [i for i, ch in enumerate(text) if not ch.isspace() and ref[i] is not None]
+    return agreement([pred[i] for i in keep], [ref[i] for i in keep])

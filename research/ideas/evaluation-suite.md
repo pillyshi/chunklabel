@@ -124,3 +124,17 @@ comparability with the literature, but do not use them for decisions.
   default threshold 85, require exact matches for very short quotes, strip quotes
   before the exact search, and fall back to a global exact search for out-of-order
   verbatim quotes.
+
+## Layer 2 Results (2026-10-10)
+
+`chunklabel.eval.agreement` / `chunk_agreement` were added (homogeneity, completeness,
+V-measure, ARI on characters; cross-checked against scikit-learn). See
+`benchmarks/label_agreement/README.md`.
+
+- On 40 PubMed abstracts, both models chunk at sentence granularity. Their boundaries
+  score the same as the "every sentence" baseline (ARI ≈ 0.42).
+- Grouping by category raises ARI only to 0.52–0.54 (ceiling 1.0). Labels are too
+  fine-grained (9–10 per abstract vs 4 roles) and inconsistent in form.
+- Qwen reused the prompt's example labels (`initiation`, `outcome`) 20 times each.
+- Next levers: a document-level label set, normalisation, removing prompt-example
+  leakage. Each can be measured with this benchmark.

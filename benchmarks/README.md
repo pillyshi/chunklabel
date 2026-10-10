@@ -10,6 +10,7 @@ The literature trail (paper catalog, reading notes, idea candidates) lives in
 |---|---|---|
 | [`surprisal_cpd_probe/`](surprisal_cpd_probe/README.md) | Can prompt-free signals (LM surprisal, context PMI, sentence embeddings + change point detection) find segment boundaries? Choi and Wiki-50. | `research/ideas/surprisal-cpd-boundaries.md` |
 | [`fidelity/`](fidelity/README.md) | How faithfully do LLM quotes map back to the source, and what should the fuzzy alignment threshold be? | `research/ideas/evaluation-suite.md` |
+| [`label_agreement/`](label_agreement/README.md) | Do chunks and free-form categories group the text like a labeled reference (PubMed RCT roles)? | `research/ideas/evaluation-suite.md` |
 
 ## Conventions
 
