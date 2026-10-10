@@ -79,3 +79,36 @@ Category names produced (one_pass, 40 abstracts):
   wrong for every use case, so low completeness means "finer than the reference", not
   necessarily "bad".
 - 40 abstracts, two small models, English only, no confidence intervals.
+
+## Removing the example labels from the prompts (2026-10-10)
+
+The example labels (`"initiation", "obstacle", "outcome"`) were removed from
+`SPLIT_SYSTEM` and `LABEL_SYSTEM`. The rule now reads "Categories are free-form, short,
+lowercase labels that describe what each chunk is about." one_pass was regenerated
+for the same 40 abstracts (`results_no_prompt_examples.json`).
+
+| model | prompt | distinct labels (40 docs) | categories / doc | leaked example labels | ARI by category | verbatim | gap |
+|---|---|---|---|---|---|---|---|
+| Qwen2.5-7B | with examples | 180 | 9.1 | 41 | 0.536 | 99.8% | 5.4% |
+| Qwen2.5-7B | without | 253 | 9.9 | 0 | 0.454 | 99.2% | 6.7% |
+| Gemma 4 E4B | with examples | 255 | 10.0 | 0 | 0.518 | 100% | 0.2% |
+| Gemma 4 E4B | without | 303 | 10.9 | 0 | 0.463 | 100% | 0.1% |
+
+Paired per-abstract ARI change (bootstrap 95% CI, 5000 resamples):
+
+- Qwen2.5-7B: −0.082 [−0.148, −0.021], worse/better/same = 19/13/8
+- Gemma 4 E4B: −0.056 [−0.097, −0.021], worse/better/same = 15/5/20
+
+Findings:
+
+- Leakage is gone, but **agreement with the role grouping dropped for both models**,
+  including Gemma, which never used the example words. Labels became more specific
+  and less often shared within a document (by-category ARI is now close to the
+  by-chunk ARI).
+- Interpretation: the abstract, function-like examples nudged models towards coarser
+  "role" labels. Two changes are confounded here, though: removing the examples, and
+  the new wording "describe what each chunk is about", which itself invites
+  content-specific labels.
+- Neither version controls label granularity explicitly. Coarser, shared labels should
+  be requested directly (a rule to reuse categories for chunks with the same role, or a
+  document-level label set) rather than induced by example words.

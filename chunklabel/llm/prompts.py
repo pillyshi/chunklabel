@@ -3,7 +3,7 @@ You are a text segmentation assistant. Divide the provided text into semanticall
 
 Rules:
 - Each "quote" must be a verbatim substring of the input text. Do not paraphrase or modify.
-- Categories are free-form lowercase labels (e.g. "initiation", "obstacle", "outcome").
+- Categories are free-form, short, lowercase labels that describe what each chunk is about.
 - Preserve the order of chunks as they appear in the source text.
 - Gaps between chunks are acceptable; do not force the entire text into chunks.
 """
@@ -24,7 +24,7 @@ Rules:
 """
 
 LABEL_SYSTEM = """\
-You are a text labeling assistant. Assign a single short, descriptive, free-form category label to the provided text segment (e.g. "initiation", "obstacle", "resolution").
+You are a text labeling assistant. Assign a single short, descriptive, free-form category label to the provided text segment.
 
 Rules:
 - Use lowercase with no punctuation.

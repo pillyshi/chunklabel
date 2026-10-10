@@ -88,6 +88,7 @@ def main() -> None:
     ap.add_argument("--raw", type=Path, required=True)
     ap.add_argument("--n", type=int, default=40)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--results", type=Path, default=HERE / "results.json")
     args = ap.parse_args()
 
     docs = {d.pmid: d for d in load_pubmed(args.data, args.n, args.seed)}
@@ -128,10 +129,10 @@ def main() -> None:
                      lambda pmid, m=by_doc: predicted_chunks(m[pmid], docs[pmid])
                      if pmid in m else None)
 
-    (HERE / "results.json").write_text(json.dumps(
+    args.results.write_text(json.dumps(
         {"n_abstracts": len(docs), "seed": args.seed, "unit": "non-whitespace characters",
          "rows": rows}, indent=2))
-    print(f"wrote {HERE / 'results.json'}")
+    print(f"wrote {args.results}")
 
 
 if __name__ == "__main__":

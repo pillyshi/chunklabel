@@ -1,0 +1,117 @@
+{
+  "n_abstracts": 40,
+  "seed": 0,
+  "unit": "non-whitespace characters",
+  "rows": [
+    {
+      "method": "baseline: whole abstract",
+      "by": "category",
+      "docs": 40,
+      "chunks_per_doc": 1.0,
+      "categories_per_doc": 1.0,
+      "homogeneity": 0.0,
+      "completeness": 1.0,
+      "v_measure": 0.0,
+      "ari": 0.0
+    },
+    {
+      "method": "baseline: whole abstract",
+      "by": "chunk",
+      "docs": 40,
+      "chunks_per_doc": 1.0,
+      "categories_per_doc": 1.0,
+      "homogeneity": 0.0,
+      "completeness": 1.0,
+      "v_measure": 0.0,
+      "ari": 0.0
+    },
+    {
+      "method": "baseline: every sentence",
+      "by": "category",
+      "docs": 40,
+      "chunks_per_doc": 12.175,
+      "categories_per_doc": 12.175,
+      "homogeneity": 1.0,
+      "completeness": 0.5370055925808235,
+      "v_measure": 0.695090699638538,
+      "ari": 0.4183293759846224
+    },
+    {
+      "method": "baseline: every sentence",
+      "by": "chunk",
+      "docs": 40,
+      "chunks_per_doc": 12.175,
+      "categories_per_doc": 12.175,
+      "homogeneity": 1.0,
+      "completeness": 0.5426006653569688,
+      "v_measure": 0.6998632549473394,
+      "ari": 0.4223980410252062
+    },
+    {
+      "method": "baseline: gold role per sentence",
+      "by": "category",
+      "docs": 40,
+      "chunks_per_doc": 12.175,
+      "categories_per_doc": 3.975,
+      "homogeneity": 1.0,
+      "completeness": 1.0,
+      "v_measure": 1.0,
+      "ari": 1.0
+    },
+    {
+      "method": "baseline: gold role per sentence",
+      "by": "chunk",
+      "docs": 40,
+      "chunks_per_doc": 12.175,
+      "categories_per_doc": 3.975,
+      "homogeneity": 1.0,
+      "completeness": 0.5426006653569688,
+      "v_measure": 0.6998632549473394,
+      "ari": 0.4223980410252062
+    },
+    {
+      "method": "gemma-4-e4b one_pass",
+      "by": "category",
+      "docs": 40,
+      "chunks_per_doc": 12.075,
+      "categories_per_doc": 10.95,
+      "homogeneity": 0.9964766864652141,
+      "completeness": 0.5644183878283674,
+      "v_measure": 0.7152872798943644,
+      "ari": 0.4626255410193109
+    },
+    {
+      "method": "gemma-4-e4b one_pass",
+      "by": "chunk",
+      "docs": 40,
+      "chunks_per_doc": 12.075,
+      "categories_per_doc": 10.95,
+      "homogeneity": 0.9964766864652141,
+      "completeness": 0.541190795355977,
+      "v_measure": 0.697785074373743,
+      "ari": 0.41936761994466387
+    },
+    {
+      "method": "qwen2.5-7b one_pass",
+      "by": "category",
+      "docs": 40,
+      "chunks_per_doc": 10.55,
+      "categories_per_doc": 9.875,
+      "homogeneity": 0.948249998116981,
+      "completeness": 0.5717586048057665,
+      "v_measure": 0.6966238205885654,
+      "ari": 0.4541545746903652
+    },
+    {
+      "method": "qwen2.5-7b one_pass",
+      "by": "chunk",
+      "docs": 40,
+      "chunks_per_doc": 10.55,
+      "categories_per_doc": 9.875,
+      "homogeneity": 0.9539321485117689,
+      "completeness": 0.5654162348781911,
+      "v_measure": 0.6942616889047726,
+      "ari": 0.43792764882455826
+    }
+  ]
+}
