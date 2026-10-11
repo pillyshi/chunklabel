@@ -1,6 +1,6 @@
 # Given label set: closed-vocabulary segmentation and labeling
 
-**Status**: Draft
+**Status**: Promoted to issue #17 (2026-10-12)
 
 ## Motivation
 
