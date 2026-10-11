@@ -580,3 +580,35 @@ papers:
   rationale: ''
   note_status: pending
   pdf_status: missing
+- key: sarawagi-2004
+  title: Semi-Markov Conditional Random Fields for Information Extraction
+  authors:
+  - Sunita Sarawagi
+  - William W. Cohen
+  year: 2004
+  publication_type: article
+  venue: ''
+  identifiers:
+    openalex: W2158188757
+  relevance: core
+  priority: medium
+  rationale: Defines the same problem as chunklabel (partition the input into non-overlapping, fully covering segments and label each one), solved with supervision and a fixed label set; the standard reference for framing chunklabel as joint segmentation and labeling, and its semi-Markov Viterbi decoding is a candidate for selecting segmentations from LLM-scored spans.
+  note_status: done
+  pdf_status: missing
+- key: kong-2015
+  title: Segmental Recurrent Neural Networks
+  authors:
+  - Lingpeng Kong
+  - Chris Dyer
+  - Noah A. Smith
+  year: 2015
+  publication_type: preprint
+  venue: arXiv (Cornell University)
+  identifiers:
+    doi: 10.48550/arxiv.1511.06018
+    openalex: W2962875366
+  relevance: core
+  priority: medium
+  rationale: Neural semi-CRF (ICLR 2016) for the same joint segmentation-and-labeling problem as chunklabel; scores every candidate segment with a BiLSTM segment embedding and decodes with dynamic programming, and also trains with latent boundaries. Supervised, fixed label set; shows the segment-level formulation beats BIO tagging.
+  note_status: done
+  pdf_status: missing
