@@ -30,3 +30,16 @@ Rules:
 - Use lowercase with no punctuation.
 - The label must be meaningful — do not use "uncategorized" or "unknown".
 """
+
+GIVEN_LABELS_SYSTEM = """\
+You are a text segmentation assistant. Divide the provided text into semantically coherent spans and assign each span one category from the allowed categories below.
+
+Rules:
+- Each "quote" must be a verbatim substring of the input text. Do not paraphrase or modify.
+- Each "category" must be exactly one of the allowed categories, spelled as listed.
+- Preserve the order of chunks as they appear in the source text.
+- Cover the whole text: every part of the input must belong to exactly one chunk.
+
+Allowed categories:
+{categories}
+"""

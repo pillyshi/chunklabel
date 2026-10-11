@@ -30,6 +30,10 @@ from chunklabel.types import RawChunk
 
 HERE = Path(__file__).parent
 
+# Label set for the given_labels mode: the PubMed RCT roles, lowercased, no descriptions.
+PUBMED_LABELS = {"background": "", "objective": "", "methods": "", "results": "",
+                 "conclusions": ""}
+
 
 @dataclass
 class Abstract:
@@ -79,7 +83,11 @@ def generate(args: argparse.Namespace) -> None:
     llm = Llama(model_path=str(args.model), n_ctx=args.n_ctx, n_gpu_layers=-1, verbose=False)
     backend = ClientBackend(LlamaCppClient(llm))
     for mode in args.modes.split(","):
-        extract = backend.extract_chunks if mode == "one_pass" else backend.extract_boundaries
+        extract = {
+            "one_pass": backend.extract_chunks,
+            "two_pass": backend.extract_boundaries,
+            "given_labels": lambda text: backend.extract_labeled_chunks(text, PUBMED_LABELS),
+        }[mode]
         for j, doc in enumerate(docs):
             if (args.name, mode, doc.pmid) in done:
                 continue
@@ -199,12 +207,12 @@ def report(args: argparse.Namespace) -> None:
         print("    accepted (partial_ratio):  " + " ".join(
             f"{t}:{v:.3f}" for t, v in row["accepted_partial"].items()))
 
-    (HERE / "results.json").write_text(json.dumps(
+    args.results.write_text(json.dumps(
         {"n_abstracts": len(docs), "seed": args.seed, "rows": rows}, indent=2))
     # Contains abstract text: written next to the raw outputs, outside the repository.
     inspect_path = args.out.with_name("inspect.jsonl")
     inspect_path.write_text("".join(json.dumps(x) + "\n" for x in inspect))
-    print(f"wrote {HERE / 'results.json'} and {inspect_path} ({len(inspect)} non-exact quotes)")
+    print(f"wrote {args.results} and {inspect_path} ({len(inspect)} non-exact quotes)")
 
 
 def main() -> None:
@@ -221,6 +229,8 @@ def main() -> None:
             p.add_argument("--name", required=True)
             p.add_argument("--modes", default="one_pass,two_pass")
             p.add_argument("--n-ctx", type=int, default=4096)
+        else:
+            p.add_argument("--results", type=Path, default=HERE / "results.json")
     args = ap.parse_args()
     generate(args) if args.cmd == "generate" else report(args)
 

@@ -150,3 +150,22 @@ Baselines: one_pass after the example-label removal, and the original two_pass r
   characters missing). The instruction does not explain them.
 - Adopted: the rule has no fidelity cost and states the intended behaviour. Remaining
   gaps are left to the model, and users can check them with `split_with_report`.
+
+## Given label set (2026-10-12, issue #17)
+
+The `given_labels` mode (`ZeroShotPromptSegmenter` with the five PubMed roles) was run
+alongside one_pass with the current prompt. Same 40 abstracts and models
+(`results_given_labels.json`; the committed `results.json` is unchanged).
+
+| model | mode | quotes | verbatim | non-verbatim | gap coverage @80 |
+|---|---|---|---|---|---|
+| Gemma 4 E4B | one_pass | 486 | 100% | 0 | 0.0% |
+| Gemma 4 E4B | given_labels | 467 | 100% | 0 | 0.3% |
+| Qwen2.5-7B | one_pass | 403 | 99.3% | 3 | 4.7% |
+| Qwen2.5-7B | given_labels | 266 | 97.7% | 6 | 3.5% |
+
+- Restricting labels did not hurt Gemma's fidelity.
+- Qwen quotes longer spans with the given labels (266 quotes against 403), and its
+  non-verbatim quotes rose to 6. All of them align at the default threshold 85
+  (partial_ratio acceptance 100% up to 90). In the segmenter, gaps join the preceding
+  segment instead of becoming `uncategorized`.

@@ -113,6 +113,24 @@ normalized_chunks = normalizer.apply(all_chunks)
 
 Normalization runs offline over the full category inventory, so the LLM can make globally consistent decisions rather than local ones.
 
+## Given label set (experimental)
+
+`ZeroShotPromptSegmenter` is a scikit-learn style estimator that splits texts using only the labels you give. Prompts contain no examples (zero-shot). It returns one segmentation per text, as `(start, end, label)` triples that cover the text without overlapping; `text[start:end]` is the segment's text.
+
+```python
+from chunklabel import ZeroShotPromptSegmenter
+
+segmenter = ZeroShotPromptSegmenter(
+    labels=["background", "methods", "results", "conclusions"],  # or {label: description}
+    client="gpt-4o",
+)
+segmentations = segmenter.predict(texts)  # list[list[tuple[int, int, str]]]
+```
+
+- Where the backend supports it (OpenAI structured outputs, llama.cpp), the JSON schema restricts labels to the given set. Any other label is mapped to the closest allowed one (`on_unknown_label="closest"`), or dropped / rejected (`"drop"` / `"raise"`).
+- Text that no aligned quote covers joins the preceding segment, so every label comes from your set.
+- `get_params` / `set_params` follow scikit-learn conventions, so `sklearn.base.clone` works. Inducing a label set with `fit` is not implemented yet. `ChunkLabeler` is unchanged.
+
 ## Configuration
 
 ```python

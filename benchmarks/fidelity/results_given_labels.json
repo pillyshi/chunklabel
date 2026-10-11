@@ -1,0 +1,138 @@
+{
+  "n_abstracts": 40,
+  "seed": 0,
+  "rows": [
+    {
+      "model": "gemma-4-e4b",
+      "mode": "given_labels",
+      "docs": 40,
+      "errors": 0,
+      "quotes": 467,
+      "exact_rate": 1.0,
+      "non_exact": 0,
+      "cosmetic_non_exact": 0,
+      "verbatim_but_missed": 0,
+      "gap_coverage@80": 0.0034142809204513657,
+      "overlap_chars@80": 0,
+      "accepted_current": {
+        "50": 1.0,
+        "60": 1.0,
+        "70": 1.0,
+        "75": 1.0,
+        "80": 1.0,
+        "85": 1.0,
+        "90": 1.0,
+        "95": 1.0
+      },
+      "accepted_partial": {
+        "50": 1.0,
+        "60": 1.0,
+        "70": 1.0,
+        "75": 1.0,
+        "80": 1.0,
+        "85": 1.0,
+        "90": 1.0,
+        "95": 1.0
+      }
+    },
+    {
+      "model": "gemma-4-e4b",
+      "mode": "one_pass",
+      "docs": 40,
+      "errors": 0,
+      "quotes": 486,
+      "exact_rate": 1.0,
+      "non_exact": 0,
+      "cosmetic_non_exact": 0,
+      "verbatim_but_missed": 0,
+      "gap_coverage@80": 0.0,
+      "overlap_chars@80": 0,
+      "accepted_current": {
+        "50": 1.0,
+        "60": 1.0,
+        "70": 1.0,
+        "75": 1.0,
+        "80": 1.0,
+        "85": 1.0,
+        "90": 1.0,
+        "95": 1.0
+      },
+      "accepted_partial": {
+        "50": 1.0,
+        "60": 1.0,
+        "70": 1.0,
+        "75": 1.0,
+        "80": 1.0,
+        "85": 1.0,
+        "90": 1.0,
+        "95": 1.0
+      }
+    },
+    {
+      "model": "qwen2.5-7b",
+      "mode": "given_labels",
+      "docs": 40,
+      "errors": 0,
+      "quotes": 266,
+      "exact_rate": 0.9774436090225563,
+      "non_exact": 6,
+      "cosmetic_non_exact": 5,
+      "verbatim_but_missed": 5,
+      "gap_coverage@80": 0.035108087626985925,
+      "overlap_chars@80": 0,
+      "accepted_current": {
+        "50": 0.981203007518797,
+        "60": 0.981203007518797,
+        "70": 0.981203007518797,
+        "75": 0.981203007518797,
+        "80": 0.981203007518797,
+        "85": 0.981203007518797,
+        "90": 0.981203007518797,
+        "95": 0.9774436090225563
+      },
+      "accepted_partial": {
+        "50": 1.0,
+        "60": 1.0,
+        "70": 1.0,
+        "75": 1.0,
+        "80": 1.0,
+        "85": 1.0,
+        "90": 1.0,
+        "95": 0.9962406015037594
+      }
+    },
+    {
+      "model": "qwen2.5-7b",
+      "mode": "one_pass",
+      "docs": 40,
+      "errors": 0,
+      "quotes": 403,
+      "exact_rate": 0.9925558312655087,
+      "non_exact": 3,
+      "cosmetic_non_exact": 3,
+      "verbatim_but_missed": 0,
+      "gap_coverage@80": 0.04670774216053959,
+      "overlap_chars@80": 0,
+      "accepted_current": {
+        "50": 1.0,
+        "60": 1.0,
+        "70": 1.0,
+        "75": 1.0,
+        "80": 1.0,
+        "85": 1.0,
+        "90": 1.0,
+        "95": 1.0
+      },
+      "accepted_partial": {
+        "50": 1.0,
+        "60": 1.0,
+        "70": 1.0,
+        "75": 1.0,
+        "80": 1.0,
+        "85": 1.0,
+        "90": 1.0,
+        "95": 1.0
+      }
+    }
+  ]
+}

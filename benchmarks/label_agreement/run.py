@@ -22,11 +22,12 @@ from typing import Any
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "fidelity"))
-from run import Abstract, load_pubmed, read_records  # noqa: E402
+from run import PUBMED_LABELS, Abstract, load_pubmed, read_records  # noqa: E402
 
 from chunklabel.alignment import align  # noqa: E402
-from chunklabel.eval import Agreement, chunk_agreement  # noqa: E402
-from chunklabel.postprocess import postprocess  # noqa: E402
+from chunklabel.eval import Agreement, char_labels, chunk_agreement  # noqa: E402
+from chunklabel.postprocess import absorb_gaps, postprocess, resolve_spans  # noqa: E402
+from chunklabel.segmenter import map_labels  # noqa: E402
 from chunklabel.types import Chunk, RawChunk  # noqa: E402
 
 HERE = Path(__file__).parent
@@ -73,8 +74,25 @@ def baselines(doc: Abstract) -> dict[str, list[Chunk]]:
 
 def predicted_chunks(record: dict[str, Any], doc: Abstract) -> list[Chunk]:
     raws = [RawChunk(category=c, quote=q) for c, q in record["chunks"]]
+    if record["mode"] == "given_labels":
+        # Same steps as ZeroShotPromptSegmenter.predict with the default settings
+        # (except on_align_error="skip").
+        raws = map_labels(raws, list(PUBMED_LABELS), "closest")
+        spans = align(raws, doc.text, threshold=85, on_error="skip")
+        segments = absorb_gaps(resolve_spans(raws, spans), len(doc.text))
+        return [Chunk(category=lab, quote=doc.text[s:e], start=s, end=e)
+                for s, e, lab in segments]
     spans = align(raws, doc.text, threshold=85, on_error="skip")
     return postprocess(raws, spans, doc.text)
+
+
+def label_accuracy(pred: list[Chunk], ref: list[Chunk], text: str) -> float:
+    """Share of compared characters whose predicted label equals the gold role
+    (case-insensitive). Only meaningful when predictions use the role names."""
+    p = char_labels(pred, len(text))
+    r = char_labels(ref, len(text))
+    keep = [i for i, ch in enumerate(text) if not ch.isspace() and r[i] is not None]
+    return sum(str(p[i]).lower() == str(r[i]).lower() for i in keep) / len(keep)
 
 
 def mean_agreement(items: list[Agreement]) -> dict[str, float]:
@@ -96,7 +114,7 @@ def main() -> None:
     rows: list[dict[str, Any]] = []
 
     def evaluate(name: str, by: str, get: Callable[[str], list[Chunk] | None]) -> None:
-        scores, n_chunks, n_cats = [], [], []
+        scores, n_chunks, n_cats, accs = [], [], [], []
         for pmid, doc in docs.items():
             pred = get(pmid)
             if pred is None:
@@ -105,13 +123,16 @@ def main() -> None:
             n_chunks.append(len(content))
             n_cats.append(len({c.category for c in content}))
             scores.append(chunk_agreement(pred, refs[pmid], doc.text, by=by))  # type: ignore[arg-type]
+            accs.append(label_accuracy(pred, refs[pmid], doc.text))
         row = {"method": name, "by": by, "docs": len(scores),
                "chunks_per_doc": float(np.mean(n_chunks)),
-               "categories_per_doc": float(np.mean(n_cats)), **mean_agreement(scores)}
+               "categories_per_doc": float(np.mean(n_cats)), **mean_agreement(scores),
+               "label_accuracy": float(np.mean(accs))}
         rows.append(row)
         print(f"{name:34s} by={by:8s} docs={len(scores):2d} chunks={row['chunks_per_doc']:5.1f} "
               f"cats={row['categories_per_doc']:5.1f}  hom={row['homogeneity']:.3f} "
-              f"com={row['completeness']:.3f} V={row['v_measure']:.3f} ARI={row['ari']:.3f}")
+              f"com={row['completeness']:.3f} V={row['v_measure']:.3f} ARI={row['ari']:.3f} "
+              f"acc={row['label_accuracy']:.3f}")
 
     print(f"{len(docs)} abstracts; reference segments/doc "
           f"{np.mean([len(r) for r in refs.values()]):.1f}, "
@@ -124,7 +145,7 @@ def main() -> None:
     for model, mode in sorted({(r["model"], r["mode"]) for r in records}):
         by_doc = {r["doc"]: r for r in records if (r["model"], r["mode"]) == (model, mode)}
         # two_pass raw output has boundaries only (labels come from a later LLM step).
-        for by in (("category", "chunk") if mode == "one_pass" else ("chunk",)):
+        for by in (("chunk",) if mode == "two_pass" else ("category", "chunk")):
             evaluate(f"{model} {mode}", by,
                      lambda pmid, m=by_doc: predicted_chunks(m[pmid], docs[pmid])
                      if pmid in m else None)

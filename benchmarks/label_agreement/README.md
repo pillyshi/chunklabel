@@ -1,9 +1,9 @@
 # Label-aware agreement with PubMed RCT roles
 
-**Status: diagnostic only.** Chunking quality is task-dependent, so these scores are
-not optimisation targets for chunklabel's schema-free mode. They would become targets
-for a future "given label set" (supervised chunking) feature. See the decision in
-`research/ideas/evaluation-suite.md`.
+**Status: diagnostic only** for the schema-free mode (`ChunkLabeler`). Chunking quality
+is task-dependent, so those scores are not optimisation targets. See the decision in
+`research/ideas/evaluation-suite.md`. For the given-label-set mode
+(`ZeroShotPromptSegmenter`), the roles are the target; see the last section.
 
 Layer 2 of `research/ideas/evaluation-suite.md`: do chunklabel's chunks and free-form
 categories group the text the way a reference with labeled segments does?
@@ -117,3 +117,46 @@ Findings:
 - Neither version controls label granularity explicitly. Coarser, shared labels should
   be requested directly (a rule to reuse categories for chunks with the same role, or a
   document-level label set) rather than induced by example words.
+
+## Given label set (2026-10-12, issue #17)
+
+`ZeroShotPromptSegmenter(labels=[background, objective, methods, results,
+conclusions])`: the five role names, without descriptions or examples, with the label
+enum enforced by the llama.cpp JSON-schema grammar. Predictions follow
+`ZeroShotPromptSegmenter.predict`: closest-label mapping, `align` (threshold 85), and
+gaps joined to the preceding segment. one_pass was regenerated in the same run with the
+current prompt (full-coverage rule) as the free-label comparison. Same 40 abstracts and
+models (`results_given_labels.json`). `label accuracy` is the share of characters whose
+label equals the gold role.
+
+| model | mode | by | chunks / doc | categories / doc | homogeneity | completeness | V | ARI | label accuracy |
+|---|---|---|---|---|---|---|---|---|---|
+| Qwen2.5-7B | one_pass | category | 10.8 | 9.8 | 0.960 | 0.572 | 0.707 | 0.476 | 0.070 |
+| Qwen2.5-7B | given_labels | category | 6.5 | 4.2 | 0.898 | 0.883 | 0.887 | **0.840** | **0.862** |
+| Qwen2.5-7B | given_labels | chunk | | | 0.934 | 0.767 | 0.827 | 0.697 | |
+| Gemma 4 E4B | one_pass | category | 12.2 | 11.1 | 0.997 | 0.559 | 0.712 | 0.457 | 0.016 |
+| Gemma 4 E4B | given_labels | category | 11.7 | 4.4 | 0.877 | 0.844 | 0.857 | **0.798** | **0.839** |
+| Gemma 4 E4B | given_labels | chunk | | | 0.998 | 0.558 | 0.710 | 0.445 | |
+
+Paired per-abstract ARI change (by category, given_labels − one_pass, bootstrap 95% CI,
+5000 resamples):
+
+- Qwen2.5-7B: +0.364 [+0.304, +0.421], better/worse = 38/2
+- Gemma 4 E4B: +0.341 [+0.284, +0.398], better/worse = 40/0
+
+Findings:
+
+- **Giving the label set closes most of the gap to the ceiling.** ARI by category goes
+  from ≈ 0.47 to 0.80–0.84, and 84–86% of characters get the gold role, with no
+  examples and no descriptions.
+- No label outside the set was returned (the enum was enforced), so the closest-label
+  mapping was never used here.
+- The models differ in segmentation. Gemma still cuts every sentence (11.7 chunks,
+  by-chunk ARI 0.45, the same as the "every sentence" baseline); the shared labels do
+  the grouping. Qwen merges consecutive sentences with the same role (6.5 chunks,
+  by-chunk ARI 0.70), at a small cost in homogeneity.
+- Most label errors are between adjacent, similar roles: background ↔ objective
+  (46–47% of wrong characters), methods ↔ results (26–28%), and conclusions labeled
+  results (16–17%). Label descriptions may help with these and are untested.
+- Caveat: PubMed roles are a familiar scheme, and the role names may be in the
+  models' training data. Results on a less conventional label set may be lower.
