@@ -72,13 +72,35 @@ First decided as one class with `fit(X, y=None)`; revised the same day to two cl
 return `(start, end, label)` triples only. A small helper recovers the quote text from
 the source when needed.
 
-## Meaning of `ZeroShotPromptSegmenter.fit_predict(X)`
+## Decision (2026-10-12): `ZeroShotPromptSegmenter` follows `KMeans`
 
-As in clustering, labels are consistent across all of `X`: `fit_predict(X)` runs the
-schema-free split on each text, then unifies the label names over the whole corpus
-(as `Normalizer` does today). The current `split(text)` is the special case of a
-single document.
-With `labels=[...]` given, labels come from that set instead and `fit` learns nothing.
+- `fit(X)` runs the schema-free split on each text, unifies the label names over the
+  whole corpus with `Normalizer`, and stores:
+  - `segmentations_`: the segmentations of `X` with unified labels (like
+    `KMeans.labels_`),
+  - `labels_`: the unified label set,
+  - `mapping_`: free label → unified label.
+- `fit_predict(X)` returns `fit(X).segmentations_`. One LLM pass over `X`, no
+  re-labeling.
+- `predict(X_new)` is for new texts: it splits them with `labels_` as a closed label
+  set. Called on the training texts, it may give different boundaries than
+  `segmentations_`, because it calls the LLM again with a different prompt. This is
+  documented, not prevented.
+- With `labels=[...]` given, `predict` uses that set and works without `fit`.
+- The current `split(text)` corresponds to `fit_predict([text])` without the corpus-wide
+  unification.
+
+## Decision (2026-10-12): scope of the zero-shot estimator
+
+- **Evaluation**: for the schema-free mode, only fidelity is evaluated (verbatim quotes,
+  alignment, coverage), as decided on 2026-10-10. Whether labels are good can only be
+  judged by the user; at this stage the mode is closer to text mining than to a task
+  with a correct answer. Agreement with gold labels stays a diagnostic.
+- **No examples in prompts**: zero-shot means the prompts contain no example
+  segmentations or labels (example labels were already removed in e141317).
+- **`Normalizer` as is**: it only merges label names; no target number of labels.
+- **Cost**: `fit` processes every text it receives. Users limit the cost by passing
+  fewer texts; there is no built-in sampling.
 
 ## Proposed Scope
 
@@ -87,8 +109,9 @@ With `labels=[...]` given, labels come from that set instead and `fit` learns no
    `fit` returns `self`, `get_params`/`set_params` (via `BaseEstimator`) so `clone` and
    parameter search work.
 2. `ZeroShotPromptSegmenter`:
-   - `fit(X)`: schema induction → `labels_` (and the free-label → label `mapping_`).
-   - `fit_predict(X)`: segmentations of `X` with corpus-wide consistent labels.
+   - `fit(X)`: split every text, unify labels with `Normalizer` → `segmentations_`,
+     `labels_`, `mapping_`.
+   - `fit_predict(X)`: returns `segmentations_`.
    - `predict(X_new)`: re-label new texts with the fitted `labels_` (closed
      vocabulary, as in `given-label-set.md`), like `KMeans.predict`.
    - `labels=[...]` hyperparameter: use the given label set; `predict` works without
@@ -111,7 +134,9 @@ With `labels=[...]` given, labels come from that set instead and `fit` learns no
 ## Acceptance Criteria
 
 - `clone(...)` works on both estimators and keeps hyperparameters.
-- Unsupervised `fit_predict(X)` returns the same label names across all texts.
+- `ZeroShotPromptSegmenter.fit_predict(X)` returns the same label names across all
+  texts and equals `fit(X).segmentations_`.
+- `ZeroShotPromptSegmenter` reports fidelity; no label-quality target.
 - Supervised `predict` only returns labels from `labels_`.
 - Both return `(start, end, label)` triples; `text[start:end]` gives the quote.
 - Existing `ChunkLabeler` tests pass unchanged.
@@ -126,6 +151,5 @@ With `labels=[...]` given, labels come from that set instead and `fit` learns no
 
 - Should `ChunkLabeler` and `Chunk` be deprecated if the estimators prove useful?
 - Should `y` also accept `list[Chunk]` or BIO over sentences, or only triples?
-- `fit` calls the LLM over a corpus and is expensive. Should it take a sample size,
-  and should it cache raw outputs?
+- Should `fit` cache raw LLM outputs so that re-fitting is cheap?
 - Are LLM calls with temperature 0 deterministic enough that `fit` is reproducible?

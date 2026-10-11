@@ -33,7 +33,8 @@ and give each one a label from a closed set.
 1. Optional label set as a constructor parameter of `ZeroShotPromptSegmenter` (see
    `sklearn-estimator-api.md`), e.g.
    `ZeroShotPromptSegmenter(labels=["background", "objective", "methods", "results", "conclusions"])`.
-   Optional per-label descriptions. `ChunkLabeler` stays as it is.
+   Optional per-label descriptions. `ChunkLabeler` stays as it is. Prompts contain no
+   example segmentations (zero-shot).
 2. When set, the split prompts list the allowed labels and ask the LLM to use only
    those. Structured output restricts `category` to an enum where the backend supports
    it (llama.cpp grammar, OpenAI JSON schema).

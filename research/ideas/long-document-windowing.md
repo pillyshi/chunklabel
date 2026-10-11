@@ -9,6 +9,9 @@ transcripts, reports, contracts) often exceed what a local model can handle well
 one call. Splitting the text into windows and processing each one independently leaves
 artificial boundaries at the window edges and may give the same segment two labels.
 
+Related: issue #5 (sliding window for long texts) covers steps 1–2 below; this idea
+adds DP stitching and label unification.
+
 ## Evidence
 
 - `catalog.yaml` [sarawagi-2004]: the semi-Markov DP picks one consistent,

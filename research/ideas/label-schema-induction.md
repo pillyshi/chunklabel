@@ -8,9 +8,13 @@ The schema-free mode is chunklabel's distinctive feature, but on its own it give
 labels that differ per document. A natural way to keep it useful is to treat it as the
 first step of a loop:
 
-1. Run schema-free chunklabel over a sample of a corpus.
-2. Merge the free labels into a small label set (schema).
+1. Run schema-free chunklabel over the texts the user passes (the user chooses how
+   many).
+2. Merge the free label names with `Normalizer` into a label set (schema).
 3. Re-label the whole corpus with that fixed set (`given-label-set.md`).
+
+Related: issue #7 (recursive structure discovery) builds on the same
+split → `Normalizer` step.
 
 This matches how qualitative researchers code interview transcripts (open coding →
 codebook → focused coding), and fits other long-segment corpora whose schema is not
@@ -31,21 +35,21 @@ demand is a hypothesis, not yet backed by literature in the catalog.
 
 ## Proposed Scope
 
-1. A corpus-level step that runs `split` on a sample of documents, collects the free
-   labels with counts, and asks the LLM (via `Normalizer`) for a small label set plus a
-   mapping from free labels to it. Optional target size (e.g. at most `k` labels).
-2. The result is a label set with short descriptions, which can be saved, edited by
-   hand, and passed to `ChunkLabeler(labels=...)`.
-3. Experiment on PubMed RCT: induce a schema from N abstracts, re-label the test set
-   with it, and report category-level ARI/AMI and number of labels vs the free-label
-   run and the gold-label run.
+1. `ZeroShotPromptSegmenter.fit(X)` (see `sklearn-estimator-api.md`): split every
+   text, merge label names with `Normalizer` as it is (no target number of labels),
+   and store the label set as `labels_`.
+2. The label set can be saved, edited by hand, and passed back as
+   `ZeroShotPromptSegmenter(labels=...)`.
+3. Evaluation is fidelity only (decision 2026-10-12 in `sklearn-estimator-api.md`).
+   Whether the label set is good is up to the user. On PubMed RCT, number of labels and
+   ARI against gold roles may be reported as diagnostics, not as targets.
 
 ## Acceptance Criteria
 
 - The induced label set is saved and loaded in the same format that the given-label-set
   feature accepts.
-- On PubMed RCT, re-labeling with the induced schema gives fewer labels per abstract
-  than the free-label run, with ARI reported for all three settings.
+- Fidelity of `fit` and of `predict` with the induced labels is reported, at least on
+  PubMed RCT.
 
 ## Out Of Scope
 
