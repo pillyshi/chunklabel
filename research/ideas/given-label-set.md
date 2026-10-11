@@ -30,20 +30,22 @@ and give each one a label from a closed set.
 
 ## Proposed Scope
 
-1. Optional label set on `ChunkLabeler` (constructor parameter), e.g.
-   `ChunkLabeler(labels=["background", "objective", "methods", "results", "conclusions"])`.
-   Optional per-label descriptions.
+1. Optional label set as a constructor parameter of `ZeroShotPromptSegmenter` (see
+   `sklearn-estimator-api.md`), e.g.
+   `ZeroShotPromptSegmenter(labels=["background", "objective", "methods", "results", "conclusions"])`.
+   Optional per-label descriptions. `ChunkLabeler` stays as it is.
 2. When set, the split prompts list the allowed labels and ask the LLM to use only
    those. Structured output restricts `category` to an enum where the backend supports
    it (llama.cpp grammar, OpenAI JSON schema).
 3. Labels outside the set (if the backend cannot enforce the enum) are mapped to the
    closest allowed label or rejected, controlled by a parameter.
-4. Without a label set, behavior is unchanged.
+4. Without a label set, `ZeroShotPromptSegmenter` uses free labels, and `ChunkLabeler`
+   is unchanged.
 
 ## Acceptance Criteria
 
 - With `labels` set, every returned `Chunk.category` is in the set.
-- Without `labels`, outputs are identical to the current version (same prompts).
+- `ChunkLabeler` outputs are identical to the current version (same prompts).
 - `benchmarks/label_agreement` run with the five PubMed roles reports category-level
   ARI/V-measure and fidelity, next to the current free-label numbers.
 
