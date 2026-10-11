@@ -33,6 +33,13 @@ sequence per sample, without full scikit-learn compliance. Not yet in the catalo
 - `chunklabel/normalizer.py`: `build_mapping` / `apply` / `save` / `load` already work
   like `fit` / `transform` / persistence.
 
+## Decision (2026-10-12): one class
+
+Use a single class with `fit(X, y=None)` for all supervision levels, instead of
+separate classes as scikit-learn does for clustering vs classification. One class
+covers the partially supervised case (some `y[i] is None`) without a third class, and
+keeps the "amount of supervision" a property of the data rather than of the class.
+
 ## Proposed Scope
 
 1. Follow scikit-learn conventions without aiming for `check_estimator` compliance:
@@ -65,8 +72,6 @@ sequence per sample, without full scikit-learn compliance. Not yet in the catalo
 
 ## Open Questions
 
-- One class with `fit(X, y=None)`, or separate classes for the unsupervised and
-  supervised cases as scikit-learn does for clustering vs classification?
 - Format of `y`: `(start, end, label)` triples are simplest; also accept `list[Chunk]`
   and BIO over sentences?
 - `fit` calls the LLM over a corpus and is expensive. Should it take a sample size,
