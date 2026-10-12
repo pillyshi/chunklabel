@@ -113,23 +113,37 @@ normalized_chunks = normalizer.apply(all_chunks)
 
 Normalization runs offline over the full category inventory, so the LLM can make globally consistent decisions rather than local ones.
 
-## Given label set (experimental)
+## Segmenter estimator (experimental)
 
-`ZeroShotPromptSegmenter` is a scikit-learn style estimator that splits texts using only the labels you give. Prompts contain no examples (zero-shot). It returns one segmentation per text, as `(start, end, label)` triples that cover the text without overlapping; `text[start:end]` is the segment's text.
+`ZeroShotPromptSegmenter` is a scikit-learn style estimator that follows `KMeans`. Prompts contain no examples (zero-shot). Each segmentation is a list of `(start, end, label)` triples that cover the text without overlapping; `text[start:end]` is the segment's text.
+
+**Inducing a label set.** `fit(X)` splits every text with free labels, as `ChunkLabeler` does, then merges the label names over all of `X` with `Normalizer`. `fit` processes every text it gets, so pass it a sample of the size you want.
 
 ```python
 from chunklabel import ZeroShotPromptSegmenter
 
-segmenter = ZeroShotPromptSegmenter(
-    labels=["background", "methods", "results", "conclusions"],  # or {label: description}
-    client="gpt-4o",
-)
-segmentations = segmenter.predict(texts)  # list[list[tuple[int, int, str]]]
+segmenter = ZeroShotPromptSegmenter(client="gpt-4o")
+segmentations = segmenter.fit_predict(texts)  # list[list[tuple[int, int, str]]]
+segmenter.labels_    # the label set found in texts
+segmenter.mapping_   # free label -> label in labels_
+
+new_segmentations = segmenter.predict(new_texts)  # only labels from labels_
 ```
 
-- Where the backend supports it (OpenAI structured outputs, llama.cpp), the JSON schema restricts labels to the given set. Any other label is mapped to the closest allowed one (`on_unknown_label="closest"`), or dropped / rejected (`"drop"` / `"raise"`).
-- Text that no aligned quote covers joins the preceding segment, so every label comes from your set.
-- `get_params` / `set_params` follow scikit-learn conventions, so `sklearn.base.clone` works. Inducing a label set with `fit` is not implemented yet. `ChunkLabeler` is unchanged.
+`fit_predict` makes one LLM pass over `texts`. `predict` prompts again with the label set, so calling it on the training texts can give different boundaries than `fit_predict`.
+
+**A given label set.** Pass `labels` to use your own labels (or `labels_` after editing it by hand). `predict` then works without `fit`.
+
+```python
+segmenter = ZeroShotPromptSegmenter(
+    labels=["background", "methods", "results", "conclusions"],  # or {label: description}
+)
+segmentations = segmenter.predict(texts)
+```
+
+- Where the backend supports it (OpenAI structured outputs, llama.cpp), the JSON schema restricts labels to the label set. Any other label is mapped to the closest allowed one (`on_unknown_label="closest"`), or dropped / rejected (`"drop"` / `"raise"`).
+- Text that no aligned quote covers joins the preceding segment, so every label comes from the label set.
+- `get_params` / `set_params` follow scikit-learn conventions, so `sklearn.base.clone` works. `ChunkLabeler` is unchanged.
 
 ## Configuration
 

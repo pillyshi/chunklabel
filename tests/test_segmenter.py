@@ -19,12 +19,15 @@ LABELS = ["background", "problem", "result"]
 
 
 class MockBackend(LLMBackend):
-    def __init__(self, chunks: list[RawChunk]) -> None:
+    def __init__(self, chunks: list[RawChunk], free: list[RawChunk] | None = None) -> None:
         self.chunks = chunks
+        self.free = free
         self.seen_labels: Mapping[str, str] | None = None
 
     def extract_chunks(self, text: str) -> list[RawChunk]:
-        raise NotImplementedError
+        if self.free is None:
+            raise AssertionError("extract_chunks should not be called")
+        return self.free
 
     def extract_labeled_chunks(self, text: str, labels: Mapping[str, str]) -> list[RawChunk]:
         self.seen_labels = labels
@@ -96,7 +99,7 @@ def test_no_aligned_quote_gives_empty_segmentation() -> None:
 
 
 def test_predict_requires_labels_and_a_list_of_texts() -> None:
-    with pytest.raises(ValueError, match="labels must be given"):
+    with pytest.raises(ValueError, match="call fit"):
         ZeroShotPromptSegmenter(backend=MockBackend(GOOD)).predict([TEXT])
     with pytest.raises(TypeError):
         ZeroShotPromptSegmenter(labels=LABELS, backend=MockBackend(GOOD)).predict(TEXT)
@@ -134,3 +137,87 @@ def test_client_backend_prompt_and_schema_enum() -> None:
     assert "- background: context" in system and "- result\n" in system
     item = client.schema["$defs"]["_LabeledChunkSchema"]["properties"]["category"]
     assert item["enum"] == ["background", "result"]
+
+
+FREE = [
+    RawChunk("kick-off", "The project kicked off in January with a small team."),
+    RawChunk("blocker", "Budget constraints forced a scope reduction in March."),
+    RawChunk("launch", "the product launched successfully in June."),
+]
+
+
+class NormalizerClient:
+    """Fake client answering only the Normalizer's request."""
+
+    def __init__(self, mapping: dict[str, str]) -> None:
+        self.mapping = mapping
+        self.calls = 0
+
+    def complete_structured(self, messages: list[dict[str, str]], response_model: type[Any]) -> Any:
+        self.calls += 1
+        return response_model.model_validate({"mapping": self.mapping})
+
+
+def test_fit_induces_label_set() -> None:
+    client = NormalizerClient({"kick-off": "start", "blocker": "problem", "launch": "outcome"})
+    seg = ZeroShotPromptSegmenter(client=client, backend=MockBackend(GOOD, free=FREE))
+    assert seg.fit([TEXT, TEXT]) is seg
+    assert seg.labels_ == ["outcome", "problem", "start"]
+    assert seg.mapping_ == {"blocker": "problem", "kick-off": "start", "launch": "outcome"}
+    assert client.calls == 1
+    for segments in seg.segmentations_:
+        assert [label for _, _, label in segments] == ["start", "problem", "outcome"]
+        assert "".join(TEXT[s:e] for s, e, _ in segments) == TEXT
+
+
+def test_fit_merges_synonyms_and_keeps_unmapped_labels() -> None:
+    client = NormalizerClient({"kick-off": "launch"})
+    seg = ZeroShotPromptSegmenter(client=client, backend=MockBackend(GOOD, free=FREE))
+    seg.fit([TEXT])
+    assert seg.mapping_ == {"blocker": "blocker", "kick-off": "launch", "launch": "launch"}
+    assert seg.labels_ == ["blocker", "launch"]
+
+
+def test_fit_predict_returns_segmentations() -> None:
+    client = NormalizerClient({})
+    seg = ZeroShotPromptSegmenter(client=client, backend=MockBackend(GOOD, free=FREE))
+    result = seg.fit_predict([TEXT])
+    assert result is seg.segmentations_
+    assert [label for _, _, label in result[0]] == ["kick-off", "blocker", "launch"]
+
+
+def test_predict_after_fit_uses_fitted_labels() -> None:
+    backend = MockBackend(GOOD, free=FREE)
+    client = NormalizerClient({"kick-off": "background", "blocker": "problem", "launch": "result"})
+    seg = ZeroShotPromptSegmenter(client=client, backend=backend).fit([TEXT])
+    [segments] = seg.predict([TEXT])
+    assert backend.seen_labels == {"background": "", "problem": "", "result": ""}
+    assert [label for _, _, label in segments] == ["background", "problem", "result"]
+
+
+def test_fit_with_given_labels_skips_induction() -> None:
+    client = NormalizerClient({})
+    seg = ZeroShotPromptSegmenter(labels=LABELS, client=client, backend=MockBackend(GOOD))
+    seg.fit([TEXT])
+    assert client.calls == 0
+    assert seg.labels_ == sorted(LABELS)
+    assert seg.mapping_ == {}
+    assert seg.segmentations_ == seg.predict([TEXT])
+
+
+def test_fit_with_nothing_aligned() -> None:
+    client = NormalizerClient({})
+    free = [RawChunk("x", "completely unrelated text that will never match")]
+    seg = ZeroShotPromptSegmenter(
+        client=client, backend=MockBackend(GOOD, free=free), on_align_error="skip"
+    ).fit([TEXT])
+    assert (seg.labels_, seg.segmentations_, client.calls) == ([], [[]], 0)
+    with pytest.raises(ValueError, match="found no labels"):
+        seg.predict([TEXT])
+
+
+def test_clone_drops_fitted_attributes() -> None:
+    sklearn_base = pytest.importorskip("sklearn.base")
+    client = NormalizerClient({})
+    seg = ZeroShotPromptSegmenter(client=client, backend=MockBackend(GOOD, free=FREE)).fit([TEXT])
+    assert not hasattr(sklearn_base.clone(seg), "labels_")
