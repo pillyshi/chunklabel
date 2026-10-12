@@ -74,7 +74,7 @@ def baselines(doc: Abstract) -> dict[str, list[Chunk]]:
 
 def predicted_chunks(record: dict[str, Any], doc: Abstract) -> list[Chunk]:
     raws = [RawChunk(category=c, quote=q) for c, q in record["chunks"]]
-    if record["mode"] == "given_labels":
+    if record["mode"].startswith("given_labels"):
         # Same steps as ZeroShotPromptSegmenter.predict with the default settings
         # (except on_align_error="skip").
         raws = map_labels(raws, list(PUBMED_LABELS), "closest")

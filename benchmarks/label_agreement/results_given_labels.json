@@ -100,6 +100,30 @@
       "label_accuracy": 0.8387317894445083
     },
     {
+      "method": "gemma-4-e4b given_labels_desc",
+      "by": "category",
+      "docs": 40,
+      "chunks_per_doc": 11.125,
+      "categories_per_doc": 4.375,
+      "homogeneity": 0.8472083240199403,
+      "completeness": 0.8250024368304618,
+      "v_measure": 0.8327846867736511,
+      "ari": 0.7637721937512284,
+      "label_accuracy": 0.8194329501259278
+    },
+    {
+      "method": "gemma-4-e4b given_labels_desc",
+      "by": "chunk",
+      "docs": 40,
+      "chunks_per_doc": 11.125,
+      "categories_per_doc": 4.375,
+      "homogeneity": 0.9790583039300934,
+      "completeness": 0.5632908236986731,
+      "v_measure": 0.7072165542369541,
+      "ari": 0.4476293689014308,
+      "label_accuracy": 0.8194329501259278
+    },
+    {
       "method": "gemma-4-e4b one_pass",
       "by": "category",
       "docs": 40,
@@ -146,6 +170,30 @@
       "v_measure": 0.8270364384439365,
       "ari": 0.6971512704970584,
       "label_accuracy": 0.8618865193356878
+    },
+    {
+      "method": "qwen2.5-7b given_labels_desc",
+      "by": "category",
+      "docs": 40,
+      "chunks_per_doc": 6.775,
+      "categories_per_doc": 4.425,
+      "homogeneity": 0.9024617363781859,
+      "completeness": 0.8714272385590103,
+      "v_measure": 0.8811702464977286,
+      "ari": 0.8378077781450382,
+      "label_accuracy": 0.8500240641025923
+    },
+    {
+      "method": "qwen2.5-7b given_labels_desc",
+      "by": "chunk",
+      "docs": 40,
+      "chunks_per_doc": 6.775,
+      "categories_per_doc": 4.425,
+      "homogeneity": 0.9412252108196324,
+      "completeness": 0.7556357823695629,
+      "v_measure": 0.8190424790579108,
+      "ari": 0.6864165672831458,
+      "label_accuracy": 0.8500240641025923
     },
     {
       "method": "qwen2.5-7b one_pass",

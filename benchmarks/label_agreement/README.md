@@ -160,3 +160,47 @@ Findings:
   results (16–17%). Label descriptions may help with these and are untested.
 - Caveat: PubMed roles are a familiar scheme, and the role names may be in the
   models' training data. Results on a less conventional label set may be lower.
+
+### Adding label descriptions (2026-10-13)
+
+`given_labels_desc` passes the same five labels with one-line descriptions
+(`PUBMED_LABEL_DESCRIPTIONS` in `benchmarks/fidelity/run.py`). The descriptions
+paraphrase the usual definitions of structured-abstract sections. They were not
+written against the errors above. Same 40 abstracts and models.
+
+| model | descriptions | chunks / doc | ARI by category | label accuracy |
+|---|---|---|---|---|
+| Qwen2.5-7B | no | 6.5 | 0.840 | 0.862 |
+| Qwen2.5-7B | yes | 6.8 | 0.838 | 0.850 |
+| Gemma 4 E4B | no | 11.7 | 0.798 | 0.839 |
+| Gemma 4 E4B | yes | 11.1 | 0.764 | 0.819 |
+
+Paired per-abstract change, with − without (bootstrap 95% CI, 5000 resamples):
+
+- Qwen2.5-7B: ARI −0.002 [−0.054, +0.048] (better/worse/same 9/9/22); accuracy
+  −0.012 [−0.078, +0.034]
+- Gemma 4 E4B: ARI −0.034 [−0.061, −0.011] (4/11/25); accuracy −0.019
+  [−0.039, −0.004]
+
+Share of characters with each error type (without → with descriptions):
+
+| error (gold → predicted) | Qwen2.5-7B | Gemma 4 E4B |
+|---|---|---|
+| background → objective | 4.8% → 3.8% | 4.0% → 3.1% |
+| objective → background | 1.9% → 3.5% | 3.6% → 4.2% |
+| methods → results | 2.7% → 1.5% | 0.8% → 0.8% |
+| results → methods | 1.1% → 1.4% | 3.7% → 4.9% |
+| conclusions → results | 2.4% → 1.4% | 2.5% → 2.9% |
+
+Findings:
+
+- **The descriptions did not help.** No change for Qwen; a small but significant drop
+  for Gemma.
+- They move the confusion between adjacent roles in the other direction rather than
+  removing it. With the descriptions, Qwen reads less background as objective, but
+  more objective as background. The boundary between these roles is unclear in the
+  gold data as well: many abstracts have only one of the two.
+- Fidelity is unchanged (Gemma 100% verbatim; Qwen 99.3% verbatim, gap 4.2%).
+- Not adopted as a default recommendation. Descriptions remain an option for label
+  sets whose names are ambiguous. This test only shows that they add nothing when
+  the names are already well known.

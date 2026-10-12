@@ -33,6 +33,19 @@ HERE = Path(__file__).parent
 # Label set for the given_labels mode: the PubMed RCT roles, lowercased, no descriptions.
 PUBMED_LABELS = {"background": "", "objective": "", "methods": "", "results": "",
                  "conclusions": ""}
+# Same labels with one-line descriptions (given_labels_desc mode), paraphrasing the
+# usual definitions of the structured-abstract sections.
+PUBMED_LABEL_DESCRIPTIONS = {
+    "background": "context and motivation: what is already known, and the problem or "
+                  "gap the study addresses",
+    "objective": "the aim, purpose, or hypothesis of this study",
+    "methods": "how the study was done: design, participants, interventions, outcome "
+               "measures, and analysis",
+    "results": "what the study found: measured outcomes, numbers, and statistical "
+               "comparisons",
+    "conclusions": "the authors' interpretation of the findings, their implications, "
+                   "and recommendations",
+}
 
 
 @dataclass
@@ -87,6 +100,8 @@ def generate(args: argparse.Namespace) -> None:
             "one_pass": backend.extract_chunks,
             "two_pass": backend.extract_boundaries,
             "given_labels": lambda text: backend.extract_labeled_chunks(text, PUBMED_LABELS),
+            "given_labels_desc": lambda text: backend.extract_labeled_chunks(
+                text, PUBMED_LABEL_DESCRIPTIONS),
         }[mode]
         for j, doc in enumerate(docs):
             if (args.name, mode, doc.pmid) in done:
