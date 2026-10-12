@@ -1,3 +1,4 @@
 # Extra filters for `make sync` (read as --filter='. .rsync-include').
 # Everything in .gitignore is already excluded. Add local-only things here.
 - .claude/
+- /notes/
