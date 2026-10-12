@@ -1,6 +1,6 @@
 # Label schema induction: free labels over a corpus, then a fixed label set
 
-**Status**: Draft
+**Status**: Promoted to issue #18 (2026-10-13)
 
 ## Motivation
 
