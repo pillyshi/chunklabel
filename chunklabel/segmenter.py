@@ -8,7 +8,11 @@ text without overlapping; ``text[start:end]`` is the segment's text. See
 from __future__ import annotations
 
 import inspect
-from collections.abc import Mapping, Sequence
+import math
+import random
+import re
+from collections import Counter
+from collections.abc import Callable, Hashable, Mapping, Sequence
 from typing import Any, Literal, Union
 
 from rapidfuzz import fuzz, process
@@ -22,6 +26,12 @@ from chunklabel.postprocess import absorb_gaps, resolve_spans
 from chunklabel.types import Chunk, RawChunk
 
 Segment = tuple[int, int, str]
+Vector = dict[Hashable, float]
+
+
+class NotFittedError(ValueError, AttributeError):
+    """Raised when an estimator is used before ``fit``. Like scikit-learn's, it subclasses
+    ``ValueError`` and ``AttributeError``."""
 
 
 class _ParamsMixin:
@@ -52,7 +62,47 @@ class _ParamsMixin:
         return f"{type(self).__name__}({args})"
 
 
-class ZeroShotPromptSegmenter(_ParamsMixin):
+class _PromptSegmenter(_ParamsMixin):
+    """Shared steps: prompt with a closed label set, map labels, align, fill gaps."""
+
+    client: Union[BaseLLMClient, str]
+    backend: LLMBackend | None
+    fuzzy_threshold: int
+    on_align_error: Literal["raise", "skip"]
+    on_unknown_label: Literal["closest", "drop", "raise"]
+    timeout: float | None
+
+    def _segment(
+        self,
+        text: str,
+        backend: LLMBackend,
+        labels: Mapping[str, str],
+        examples: Sequence[tuple[str, list[RawChunk]]] = (),
+    ) -> list[Segment]:
+        if examples:
+            raw = backend.extract_labeled_chunks(text, labels, examples)
+        else:
+            raw = backend.extract_labeled_chunks(text, labels)
+        raw_chunks = map_labels(raw, list(labels), self.on_unknown_label)
+        spans = align(raw_chunks, text, self.fuzzy_threshold, on_error=self.on_align_error)
+        return absorb_gaps(resolve_spans(raw_chunks, spans), len(text))
+
+    def _make_client(self) -> BaseLLMClient:
+        if isinstance(self.client, str):
+            from chunklabel.llm.client import OpenAIClient
+
+            return OpenAIClient(model=self.client, timeout=self.timeout)
+        return self.client
+
+    def _make_backend(self) -> LLMBackend:
+        if self.backend is not None:
+            return self.backend
+        from chunklabel.llm.backend import ClientBackend
+
+        return ClientBackend(self._make_client())
+
+
+class ZeroShotPromptSegmenter(_PromptSegmenter):
     """Split texts into labeled segments by prompting an LLM, without examples.
 
     Like ``KMeans``: ``fit(X)`` finds a label set in ``X`` and segments ``X`` with it;
@@ -150,21 +200,12 @@ class ZeroShotPromptSegmenter(_ParamsMixin):
         backend = self._make_backend()
         return [self._segment(text, backend, labels) for text in X]
 
-    def _segment(
-        self, text: str, backend: LLMBackend, labels: Mapping[str, str]
-    ) -> list[Segment]:
-        raw_chunks = map_labels(
-            backend.extract_labeled_chunks(text, labels), list(labels), self.on_unknown_label
-        )
-        spans = align(raw_chunks, text, self.fuzzy_threshold, on_error=self.on_align_error)
-        return absorb_gaps(resolve_spans(raw_chunks, spans), len(text))
-
     def _label_descriptions(self) -> dict[str, str]:
         labels = self.labels
         if labels is None:
             labels = getattr(self, "labels_", None)
             if labels is None:
-                raise ValueError(
+                raise NotFittedError(
                     "This ZeroShotPromptSegmenter has no label set: call fit() first "
                     "or pass labels"
                 )
@@ -180,19 +221,136 @@ class ZeroShotPromptSegmenter(_ParamsMixin):
             raise ValueError("labels must contain at least one non-blank label")
         return descriptions
 
-    def _make_client(self) -> BaseLLMClient:
-        if isinstance(self.client, str):
-            from chunklabel.llm.client import OpenAIClient
 
-            return OpenAIClient(model=self.client, timeout=self.timeout)
-        return self.client
+class FewShotPromptSegmenter(_PromptSegmenter):
+    """Split texts into labeled segments by prompting an LLM with labeled examples.
 
-    def _make_backend(self) -> LLMBackend:
-        if self.backend is not None:
-            return self.backend
-        from chunklabel.llm.backend import ClientBackend
+    ``fit(X, y)`` keeps the labeled texts as an example pool; it makes no LLM call.
+    ``predict`` puts ``n_examples`` of them in the prompt as user / assistant turns,
+    and restricts labels to those in ``y``.
 
-        return ClientBackend(self._make_client())
+    Args:
+        n_examples: Number of examples per prompt.
+        example_selection: ``"random"`` uses the same examples, drawn once with
+            ``random_state``, for every text. ``"similar"`` uses, for each text, the
+            pool texts most similar to it; the most similar comes last.
+        embedding: For ``"similar"``: a function from a list of texts to a list of
+            vectors (for example a sentence-transformers model's ``encode``). By
+            default, TF-IDF over character 3-grams is used.
+        random_state: Seed for ``"random"``.
+        client, backend, fuzzy_threshold, on_align_error, on_unknown_label, timeout:
+            As in ``ZeroShotPromptSegmenter``.
+
+    A pool text identical to the input is never used as its example. Each example
+    costs about twice its length in prompt tokens (text plus expected JSON), so lower
+    ``n_examples`` for long texts.
+
+    Attributes (after ``fit``):
+        labels_: Labels that occur in ``y``, sorted.
+        example_pool_: The labeled ``(text, segmentation)`` pairs. Texts with
+            ``y[i] is None`` are accepted and not used.
+    """
+
+    def __init__(
+        self,
+        n_examples: int = 3,
+        example_selection: Literal["random", "similar"] = "random",
+        embedding: Callable[[list[str]], Sequence[Sequence[float]]] | None = None,
+        random_state: int | None = None,
+        client: Union[BaseLLMClient, str] = "gpt-4o",
+        backend: LLMBackend | None = None,
+        fuzzy_threshold: int = 85,
+        on_align_error: Literal["raise", "skip"] = "raise",
+        on_unknown_label: Literal["closest", "drop", "raise"] = "closest",
+        timeout: float | None = 120.0,
+    ) -> None:
+        self.n_examples = n_examples
+        self.example_selection = example_selection
+        self.embedding = embedding
+        self.random_state = random_state
+        self.client = client
+        self.backend = backend
+        self.fuzzy_threshold = fuzzy_threshold
+        self.on_align_error = on_align_error
+        self.on_unknown_label = on_unknown_label
+        self.timeout = timeout
+
+    def fit(self, X: Sequence[str], y: Sequence[Sequence[Segment] | None]) -> Self:
+        """Check ``y`` and keep the labeled texts as the example pool."""
+        _check_texts(X)
+        if self.n_examples < 0:
+            raise ValueError("n_examples must be >= 0")
+        if self.example_selection not in ("random", "similar"):
+            raise ValueError(f"Unknown example_selection: {self.example_selection!r}")
+        if len(y) != len(X):
+            raise ValueError(f"X and y have different lengths: {len(X)} and {len(y)}")
+        pool: list[tuple[str, list[Segment]]] = []
+        for i, (text, segmentation) in enumerate(zip(X, y)):
+            if segmentation is not None:
+                pool.append((text, _check_segmentation(segmentation, text, i)))
+        labels = sorted({label for _, segs in pool for _, _, label in segs})
+        if not labels:
+            raise ValueError("y has no labeled segment")
+
+        self.labels_ = labels
+        self.example_pool_ = pool
+        texts = [text for text, _ in pool]
+        if self.example_selection == "random":
+            self.example_order_ = random.Random(self.random_state).sample(
+                range(len(pool)), len(pool)
+            )
+        elif self.embedding is None:
+            self.vectorizer_: _CharNgramTfidf | None = _CharNgramTfidf().fit(texts)
+            self.pool_vectors_ = self.vectorizer_.transform(texts)
+        else:
+            self.vectorizer_ = None
+            self.pool_vectors_ = _dense_to_vectors(self.embedding(texts))
+        return self
+
+    def predict(self, X: Sequence[str]) -> list[list[Segment]]:
+        """Return one segmentation per text in ``X``, using only ``labels_``."""
+        _check_texts(X)
+        if not hasattr(self, "example_pool_"):
+            raise NotFittedError("This FewShotPromptSegmenter is not fitted: call fit() first")
+        labels = {label: "" for label in self.labels_}
+        backend = self._make_backend()
+        chosen = self.select_examples(X)
+        return [
+            self._segment(text, backend, labels, [self._as_raw(k) for k in indices])
+            for text, indices in zip(X, chosen)
+        ]
+
+    def select_examples(self, X: Sequence[str]) -> list[list[int]]:
+        """Indices into ``example_pool_`` of the examples used for each text, in prompt
+        order."""
+        _check_texts(X)
+        if not hasattr(self, "example_pool_"):
+            raise NotFittedError("This FewShotPromptSegmenter is not fitted: call fit() first")
+        pool_texts = [text for text, _ in self.example_pool_]
+        if self.example_selection == "random":
+            return [
+                [k for k in self.example_order_ if pool_texts[k] != text][: self.n_examples]
+                for text in X
+            ]
+        if self.vectorizer_ is not None:
+            vectors = self.vectorizer_.transform(list(X))
+        else:
+            assert self.embedding is not None
+            vectors = _dense_to_vectors(self.embedding(list(X)))
+        chosen = []
+        for text, vector in zip(X, vectors):
+            scored = [
+                (_dot(vector, pool_vector), -k)
+                for k, pool_vector in enumerate(self.pool_vectors_)
+                if pool_texts[k] != text
+            ]
+            top = sorted(scored, reverse=True)[: self.n_examples]
+            chosen.append([-neg_k for _, neg_k in reversed(top)])
+        return chosen
+
+    def _as_raw(self, k: int) -> tuple[str, list[RawChunk]]:
+        text, segmentation = self.example_pool_[k]
+        return text, [RawChunk(category=label, quote=text[s:e]) for s, e, label in segmentation]
 
 
 def _check_texts(X: Sequence[str]) -> None:
@@ -231,3 +389,66 @@ def map_labels(
             label = by_key[match[0]]
         out.append(RawChunk(category=label, quote=chunk.quote))
     return out
+
+
+def _check_segmentation(segmentation: Sequence[Segment], text: str, i: int) -> list[Segment]:
+    out: list[Segment] = []
+    for triple in segmentation:
+        start, end, label = triple
+        if not (isinstance(label, str) and label.strip()):
+            raise ValueError(f"y[{i}]: labels must be non-blank strings, got {label!r}")
+        if not 0 <= start < end <= len(text):
+            raise ValueError(f"y[{i}]: segment {triple!r} is outside the text")
+        if out and start < out[-1][1]:
+            raise ValueError(f"y[{i}]: segments must be sorted and must not overlap")
+        out.append((start, end, label))
+    return out
+
+
+class _CharNgramTfidf:
+    """TF-IDF over character n-grams (default 3), L2-normalized; pure Python.
+
+    Character n-grams need no tokenizer, so this also works for languages written
+    without spaces.
+    """
+
+    def __init__(self, n: int = 3) -> None:
+        self.n = n
+        self.idf: dict[str, float] = {}
+
+    def _grams(self, text: str) -> Counter[str]:
+        t = re.sub(r"\s+", " ", text.lower()).strip()
+        if len(t) <= self.n:
+            return Counter([t]) if t else Counter()
+        return Counter(t[i : i + self.n] for i in range(len(t) - self.n + 1))
+
+    def fit(self, texts: Sequence[str]) -> _CharNgramTfidf:
+        df: Counter[str] = Counter()
+        for text in texts:
+            df.update(set(self._grams(text)))
+        n = len(texts)
+        # Smoothed IDF, as scikit-learn's TfidfVectorizer(smooth_idf=True).
+        self.idf = {g: math.log((1 + n) / (1 + c)) + 1 for g, c in df.items()}
+        return self
+
+    def transform(self, texts: Sequence[str]) -> list[Vector]:
+        out = []
+        for text in texts:
+            v: Vector = {g: c * self.idf[g] for g, c in self._grams(text).items() if g in self.idf}
+            out.append(_normalize(v))
+        return out
+
+
+def _dense_to_vectors(rows: Sequence[Sequence[float]]) -> list[Vector]:
+    return [_normalize({i: float(x) for i, x in enumerate(row)}) for row in rows]
+
+
+def _normalize(v: Vector) -> Vector:
+    norm = math.sqrt(sum(x * x for x in v.values()))
+    return {k: x / norm for k, x in v.items()} if norm else v
+
+
+def _dot(a: Vector, b: Vector) -> float:
+    if len(a) > len(b):
+        a, b = b, a
+    return sum(x * b.get(k, 0.0) for k, x in a.items())

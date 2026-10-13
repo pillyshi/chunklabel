@@ -1,13 +1,14 @@
-from collections.abc import Mapping
-from typing import Any
+import json
+from collections.abc import Mapping, Sequence
+from typing import Any, Literal
 
 import pytest
 from pydantic import BaseModel
 
-from chunklabel import ZeroShotPromptSegmenter
+from chunklabel import FewShotPromptSegmenter, NotFittedError, ZeroShotPromptSegmenter
 from chunklabel.llm.backend import ClientBackend
 from chunklabel.llm.base import LLMBackend
-from chunklabel.segmenter import map_labels
+from chunklabel.segmenter import _CharNgramTfidf, _dot, map_labels
 from chunklabel.types import RawChunk
 
 TEXT = (
@@ -29,7 +30,12 @@ class MockBackend(LLMBackend):
             raise AssertionError("extract_chunks should not be called")
         return self.free
 
-    def extract_labeled_chunks(self, text: str, labels: Mapping[str, str]) -> list[RawChunk]:
+    def extract_labeled_chunks(
+        self,
+        text: str,
+        labels: Mapping[str, str],
+        examples: Sequence[tuple[str, list[RawChunk]]] = (),
+    ) -> list[RawChunk]:
         self.seen_labels = labels
         return self.chunks
 
@@ -221,3 +227,142 @@ def test_clone_drops_fitted_attributes() -> None:
     client = NormalizerClient({})
     seg = ZeroShotPromptSegmenter(client=client, backend=MockBackend(GOOD, free=FREE)).fit([TEXT])
     assert not hasattr(sklearn_base.clone(seg), "labels_")
+
+
+# --- FewShotPromptSegmenter -------------------------------------------------
+
+
+class ExampleBackend(LLMBackend):
+    """Records the examples it is given and answers with GOOD."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, Mapping[str, str], list[tuple[str, list[RawChunk]]]]] = []
+
+    def extract_chunks(self, text: str) -> list[RawChunk]:
+        raise AssertionError("extract_chunks should not be called")
+
+    def extract_labeled_chunks(
+        self,
+        text: str,
+        labels: Mapping[str, str],
+        examples: Sequence[tuple[str, list[RawChunk]]] = (),
+    ) -> list[RawChunk]:
+        self.calls.append((text, labels, list(examples)))
+        return GOOD
+
+
+POOL_X = [
+    "Cats sleep a lot. Cats purr when happy.",
+    "Dogs bark at night. Dogs like walks.",
+    "The stock market fell. Investors were worried.",
+    "Unlabeled text here.",
+]
+POOL_Y: list[list[tuple[int, int, str]] | None] = [
+    [(0, 17, "background"), (18, 39, "result")],
+    [(0, 19, "background"), (20, 35, "result")],
+    [(0, 22, "problem")],
+    None,
+]
+
+
+def test_fewshot_fit_stores_labels_and_pool_without_llm() -> None:
+    backend = ExampleBackend()
+    seg = FewShotPromptSegmenter(backend=backend).fit(POOL_X, POOL_Y)
+    assert seg.labels_ == ["background", "problem", "result"]
+    assert [text for text, _ in seg.example_pool_] == POOL_X[:3]
+    assert backend.calls == []
+
+
+def test_fewshot_predict_passes_examples_and_labels() -> None:
+    backend = ExampleBackend()
+    seg = FewShotPromptSegmenter(n_examples=2, random_state=0, backend=backend)
+    [segments] = seg.fit(POOL_X, POOL_Y).predict([TEXT])
+    _, labels, examples = backend.calls[0]
+    assert labels == {"background": "", "problem": "", "result": ""}
+    assert len(examples) == 2
+    for text, chunks in examples:
+        k = POOL_X.index(text)
+        expected = POOL_Y[k]
+        assert expected is not None
+        assert [(c.category, c.quote) for c in chunks] == [(lab, text[s:e]) for s, e, lab in expected]
+    assert "".join(TEXT[s:e] for s, e, _ in segments) == TEXT
+
+
+def test_fewshot_random_is_reproducible_and_shared_across_inputs() -> None:
+    a = FewShotPromptSegmenter(n_examples=2, random_state=1).fit(POOL_X, POOL_Y)
+    b = FewShotPromptSegmenter(n_examples=2, random_state=1).fit(POOL_X, POOL_Y)
+    chosen = a.select_examples([TEXT, "another text"])
+    assert chosen == b.select_examples([TEXT, "another text"])
+    assert chosen[0] == chosen[1] and len(chosen[0]) == 2
+
+
+def test_fewshot_skips_identical_text() -> None:
+    selections: tuple[Literal["random", "similar"], ...] = ("random", "similar")
+    for selection in selections:
+        seg = FewShotPromptSegmenter(n_examples=3, example_selection=selection)
+        seg.fit(POOL_X, POOL_Y)
+        [chosen] = seg.select_examples([POOL_X[0]])
+        assert 0 not in chosen and len(chosen) == 2
+
+
+def test_fewshot_similar_puts_most_similar_last() -> None:
+    seg = FewShotPromptSegmenter(n_examples=2, example_selection="similar").fit(POOL_X, POOL_Y)
+    [chosen] = seg.select_examples(["Dogs bark loudly. Dogs like long walks."])
+    assert chosen[-1] == 1
+
+
+def test_fewshot_similar_with_custom_embedding() -> None:
+    def embed(texts: list[str]) -> list[list[float]]:
+        return [[1.0, 0.0] if "market" in t or "stock" in t else [0.0, 1.0] for t in texts]
+
+    seg = FewShotPromptSegmenter(n_examples=1, example_selection="similar", embedding=embed)
+    seg.fit(POOL_X, POOL_Y)
+    assert seg.select_examples(["stock prices"]) == [[2]]
+
+
+def test_fewshot_validates_y() -> None:
+    seg = FewShotPromptSegmenter()
+    with pytest.raises(ValueError, match="different lengths"):
+        seg.fit(POOL_X, POOL_Y[:2])
+    with pytest.raises(ValueError, match="outside the text"):
+        seg.fit(["short"], [[(0, 99, "a")]])
+    with pytest.raises(ValueError, match="must not overlap"):
+        seg.fit(["some text here"], [[(0, 6, "a"), (4, 9, "b")]])
+    with pytest.raises(ValueError, match="no labeled segment"):
+        seg.fit(["a text"], [None])
+
+
+def test_not_fitted_error() -> None:
+    with pytest.raises(NotFittedError):
+        FewShotPromptSegmenter().predict([TEXT])
+    with pytest.raises(NotFittedError):
+        ZeroShotPromptSegmenter().predict([TEXT])
+    assert issubclass(NotFittedError, ValueError) and issubclass(NotFittedError, AttributeError)
+
+
+def test_fewshot_clone() -> None:
+    sklearn_base = pytest.importorskip("sklearn.base")
+    seg = FewShotPromptSegmenter(n_examples=5, example_selection="similar", random_state=3)
+    seg.fit(POOL_X, POOL_Y)
+    cloned = sklearn_base.clone(seg)
+    assert cloned.get_params() == seg.get_params()
+    assert not hasattr(cloned, "example_pool_")
+
+
+def test_char_ngram_tfidf_works_without_spaces() -> None:
+    tfidf = _CharNgramTfidf().fit(["猫はよく眠る。", "株価が下がった。"])
+    query, cat, stock = tfidf.transform(["猫がよく眠っている。", "猫はよく眠る。", "株価が下がった。"])
+    assert _dot(query, cat) > _dot(query, stock)
+
+
+def test_client_backend_puts_examples_as_turns() -> None:
+    client = FakeClient()
+    examples = [("Example text.", [RawChunk("background", "Example text.")])]
+    ClientBackend(client).extract_labeled_chunks(TEXT, {"background": ""}, examples)
+    roles = [m["role"] for m in client.messages]
+    assert roles == ["system", "user", "assistant", "user"]
+    assert client.messages[1]["content"] == "Example text."
+    assert json.loads(client.messages[2]["content"]) == {
+        "chunks": [{"category": "background", "quote": "Example text."}]
+    }
+    assert client.messages[3]["content"] == TEXT

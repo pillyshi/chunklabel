@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+import json
+from collections.abc import Mapping, Sequence
 
 from pydantic import BaseModel, Field, JsonValue, create_model
 
@@ -68,16 +69,27 @@ class ClientBackend(LLMBackend):
         )
         return [RawChunk(category="", quote=s.quote) for s in result.segments]
 
-    def extract_labeled_chunks(self, text: str, labels: Mapping[str, str]) -> list[RawChunk]:
+    def extract_labeled_chunks(
+        self,
+        text: str,
+        labels: Mapping[str, str],
+        examples: Sequence[tuple[str, list[RawChunk]]] = (),
+    ) -> list[RawChunk]:
         categories = "\n".join(
             f"- {name}: {desc}" if desc else f"- {name}" for name, desc in labels.items()
         )
+        messages = [
+            {"role": "system", "content": GIVEN_LABELS_SYSTEM.format(categories=categories)}
+        ]
+        # Few-shot examples as user / assistant turns, the assistant turn being the
+        # exact JSON expected for that text.
+        for example_text, chunks in examples:
+            answer = {"chunks": [{"category": c.category, "quote": c.quote} for c in chunks]}
+            messages.append({"role": "user", "content": example_text})
+            messages.append({"role": "assistant", "content": json.dumps(answer, ensure_ascii=False)})
+        messages.append({"role": "user", "content": text})
         result = self._client.complete_structured(
-            [
-                {"role": "system", "content": GIVEN_LABELS_SYSTEM.format(categories=categories)},
-                {"role": "user", "content": text},
-            ],
-            _labeled_chunk_list_schema(list(labels)),
+            messages, _labeled_chunk_list_schema(list(labels))
         )
         return [RawChunk(category=c.category, quote=c.quote) for c in result.chunks]  # type: ignore[attr-defined]
 

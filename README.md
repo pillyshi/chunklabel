@@ -144,6 +144,21 @@ segmentations = segmenter.predict(texts)
 - Where the backend supports it (OpenAI structured outputs, llama.cpp), the JSON schema restricts labels to the label set. Any other label is mapped to the closest allowed one (`on_unknown_label="closest"`), or dropped / rejected (`"drop"` / `"raise"`).
 - Text that no aligned quote covers joins the preceding segment, so every label comes from the label set.
 - `get_params` / `set_params` follow scikit-learn conventions, so `sklearn.base.clone` works. `ChunkLabeler` is unchanged.
+- Calling `predict` before `fit`, with no `labels`, raises `chunklabel.NotFittedError` (a `ValueError` and `AttributeError`, like scikit-learn's).
+
+**Learning from examples.** `FewShotPromptSegmenter` takes labeled texts. `y` holds one segmentation per text, or `None` for an unlabeled text (accepted, not used yet). `fit` makes no LLM call: it keeps the labeled texts as an example pool. `predict` shows `n_examples` of them to the LLM, as earlier turns of the conversation, and allows only the labels that occur in `y`.
+
+```python
+from chunklabel import FewShotPromptSegmenter
+
+segmenter = FewShotPromptSegmenter(n_examples=3, example_selection="similar")
+segmenter.fit(train_texts, train_segmentations)  # [[(start, end, label), ...], ...]
+segmentations = segmenter.predict(texts)
+```
+
+- `example_selection="random"` (default) uses the same examples, drawn with `random_state`, for every text. `"similar"` picks, per text, the most similar pool texts; the most similar comes last. Similarity is TF-IDF over character 3-grams by default, which needs no extra dependency and works for text without spaces. Pass `embedding=` (a function from a list of texts to a list of vectors, such as a sentence-transformers model's `encode`) to use an embedding model instead.
+- A pool text identical to the input is never used as its example.
+- Each example costs about twice its length in prompt tokens (its text plus the expected answer), so lower `n_examples` for long texts. Nothing is truncated automatically.
 
 ## Configuration
 
