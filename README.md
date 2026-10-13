@@ -142,7 +142,7 @@ segmentations = segmenter.predict(texts)
 ```
 
 - Where the backend supports it (OpenAI structured outputs, llama.cpp), the JSON schema restricts labels to the label set. Any other label is mapped to the closest allowed one (`on_unknown_label="closest"`), or dropped / rejected (`"drop"` / `"raise"`).
-- Text that no aligned quote covers joins the preceding segment, so every label comes from the label set.
+- Text that no aligned quote covers joins the preceding segment, so every label comes from the label set. Check how much text that was with `predict_with_report` (see "Checking fidelity" below).
 - `get_params` / `set_params` follow scikit-learn conventions, so `sklearn.base.clone` works. `ChunkLabeler` is unchanged.
 - Calling `predict` before `fit`, with no `labels`, raises `chunklabel.NotFittedError` (a `ValueError` and `AttributeError`, like scikit-learn's).
 
@@ -197,6 +197,17 @@ for text in sample_texts:
 `split_with_report` returns the same chunks as `split`, but never raises on alignment
 errors: unaligned quotes are counted in the report instead. For a single text you can
 also call `chunklabel.eval.fidelity(raw_chunks, text)` directly.
+
+The segmenter estimators have `predict_with_report`, which returns the same report per
+text. This matters even more there: they join unquoted text to the preceding segment, so
+a segmentation always looks complete, and only `gap_coverage` shows how much the LLM
+skipped. `ZeroShotPromptSegmenter.fit` also keeps the reports of its own pass over the
+training texts in `fit_reports_`.
+
+```python
+segmentations, reports = segmenter.predict_with_report(texts)
+skipped = [i for i, r in enumerate(reports) if r.gap_coverage > 0.2]
+```
 
 As a reference point, on 40 PubMed abstracts Gemma 4 E4B quoted 100% verbatim with
 almost no gaps. Qwen2.5-7B quoted 99% verbatim but left 5–7% of the text unquoted

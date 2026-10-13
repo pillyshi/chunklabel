@@ -18,7 +18,8 @@ from typing import Any, Literal, Union
 from rapidfuzz import fuzz, process
 from typing_extensions import Self
 
-from chunklabel.alignment import align
+from chunklabel.alignment import AlignmentDetail, AlignmentError, align_detailed
+from chunklabel.eval import FidelityReport, fidelity_from_details
 from chunklabel.llm.base import LLMBackend
 from chunklabel.llm.client import BaseLLMClient
 from chunklabel.normalizer import Normalizer
@@ -78,14 +79,26 @@ class _PromptSegmenter(_ParamsMixin):
         backend: LLMBackend,
         labels: Mapping[str, str],
         examples: Sequence[tuple[str, list[RawChunk]]] = (),
-    ) -> list[Segment]:
+        strict: bool = True,
+    ) -> tuple[list[Segment], FidelityReport]:
+        """Segment ``text`` and report fidelity. ``strict`` applies ``on_align_error``;
+        otherwise unaligned quotes are only counted."""
         if examples:
             raw = backend.extract_labeled_chunks(text, labels, examples)
         else:
             raw = backend.extract_labeled_chunks(text, labels)
         raw_chunks = map_labels(raw, list(labels), self.on_unknown_label)
-        spans = align(raw_chunks, text, self.fuzzy_threshold, on_error=self.on_align_error)
-        return absorb_gaps(resolve_spans(raw_chunks, spans), len(text))
+        return self._resolve(raw_chunks, text, strict)
+
+    def _resolve(
+        self, raw_chunks: list[RawChunk], text: str, strict: bool
+    ) -> tuple[list[Segment], FidelityReport]:
+        details = align_detailed(raw_chunks, text, self.fuzzy_threshold)
+        if strict and self.on_align_error == "raise":
+            _raise_unaligned(raw_chunks, details, self.fuzzy_threshold)
+        spans = [d.span for d in details]
+        segments = absorb_gaps(resolve_spans(raw_chunks, spans), len(text))
+        return segments, fidelity_from_details(details, text)
 
     def _make_client(self) -> BaseLLMClient:
         if isinstance(self.client, str):
@@ -133,9 +146,12 @@ class ZeroShotPromptSegmenter(_PromptSegmenter):
         segmentations_: Segmentations of the training texts.
         labels_: The label set, sorted.
         mapping_: Free label → label in ``labels_`` (empty when ``labels`` is given).
+        fit_reports_: Fidelity of the LLM's quotes for each training text.
 
     Gaps between aligned quotes are joined to the preceding segment, so every
-    segmentation covers its text exactly. A text with no aligned quote gets ``[]``.
+    segmentation covers its text exactly, even when the LLM skipped text. Use
+    ``predict_with_report`` (or ``fit_reports_``) to see how much it skipped. A text
+    with no aligned quote gets ``[]``.
     """
 
     def __init__(
@@ -162,17 +178,23 @@ class ZeroShotPromptSegmenter(_PromptSegmenter):
         if self.labels is not None:
             labels = self._label_descriptions()
             backend = self._make_backend()
-            self.segmentations_ = [self._segment(text, backend, labels) for text in X]
+            results = [self._segment(text, backend, labels) for text in X]
+            self.segmentations_ = [segments for segments, _ in results]
+            self.fit_reports_ = [report for _, report in results]
             self.labels_ = sorted(labels)
             self.mapping_: dict[str, str] = {}
             return self
 
         backend = self._make_backend()
         resolved = []
+        self.fit_reports_ = []
         for text in X:
             raw_chunks = [c for c in backend.extract_chunks(text) if c.category.strip()]
-            spans = align(raw_chunks, text, self.fuzzy_threshold, on_error=self.on_align_error)
-            resolved.append(resolve_spans(raw_chunks, spans))
+            details = align_detailed(raw_chunks, text, self.fuzzy_threshold)
+            if self.on_align_error == "raise":
+                _raise_unaligned(raw_chunks, details, self.fuzzy_threshold)
+            resolved.append(resolve_spans(raw_chunks, [d.span for d in details]))
+            self.fit_reports_.append(fidelity_from_details(details, text))
 
         free = sorted({label for segments in resolved for _, _, label in segments})
         mapping: dict[str, str] = {}
@@ -195,10 +217,26 @@ class ZeroShotPromptSegmenter(_PromptSegmenter):
 
     def predict(self, X: Sequence[str]) -> list[list[Segment]]:
         """Return one segmentation per text in ``X``, using only the label set."""
+        return [segments for segments, _ in self._predict(X, strict=True)]
+
+    def predict_with_report(
+        self, X: Sequence[str]
+    ) -> tuple[list[list[Segment]], list[FidelityReport]]:
+        """Like ``predict``, but also report how faithfully the LLM quoted each text.
+
+        Never raises on alignment errors: unaligned quotes are counted and dropped. The
+        report covers the quotes after label mapping.
+        """
+        results = self._predict(X, strict=False)
+        return [s for s, _ in results], [r for _, r in results]
+
+    def _predict(
+        self, X: Sequence[str], strict: bool
+    ) -> list[tuple[list[Segment], FidelityReport]]:
         _check_texts(X)
         labels = self._label_descriptions()
         backend = self._make_backend()
-        return [self._segment(text, backend, labels) for text in X]
+        return [self._segment(text, backend, labels, strict=strict) for text in X]
 
     def _label_descriptions(self) -> dict[str, str]:
         labels = self.labels
@@ -309,6 +347,22 @@ class FewShotPromptSegmenter(_PromptSegmenter):
 
     def predict(self, X: Sequence[str]) -> list[list[Segment]]:
         """Return one segmentation per text in ``X``, using only ``labels_``."""
+        return [segments for segments, _ in self._predict(X, strict=True)]
+
+    def predict_with_report(
+        self, X: Sequence[str]
+    ) -> tuple[list[list[Segment]], list[FidelityReport]]:
+        """Like ``predict``, but also report how faithfully the LLM quoted each text.
+
+        Never raises on alignment errors: unaligned quotes are counted and dropped. The
+        report covers the quotes after label mapping.
+        """
+        results = self._predict(X, strict=False)
+        return [s for s, _ in results], [r for _, r in results]
+
+    def _predict(
+        self, X: Sequence[str], strict: bool
+    ) -> list[tuple[list[Segment], FidelityReport]]:
         _check_texts(X)
         if not hasattr(self, "example_pool_"):
             raise NotFittedError("This FewShotPromptSegmenter is not fitted: call fit() first")
@@ -316,7 +370,7 @@ class FewShotPromptSegmenter(_PromptSegmenter):
         backend = self._make_backend()
         chosen = self.select_examples(X)
         return [
-            self._segment(text, backend, labels, [self._as_raw(k) for k in indices])
+            self._segment(text, backend, labels, [self._as_raw(k) for k in indices], strict)
             for text, indices in zip(X, chosen)
         ]
 
@@ -351,6 +405,18 @@ class FewShotPromptSegmenter(_PromptSegmenter):
     def _as_raw(self, k: int) -> tuple[str, list[RawChunk]]:
         text, segmentation = self.example_pool_[k]
         return text, [RawChunk(category=label, quote=text[s:e]) for s, e, label in segmentation]
+
+
+def _raise_unaligned(
+    raw_chunks: Sequence[RawChunk], details: Sequence[AlignmentDetail], threshold: int
+) -> None:
+    """Raise like ``align(on_error="raise")`` for the first quote that did not align."""
+    for chunk, detail in zip(raw_chunks, details):
+        if detail.span is None:
+            raise AlignmentError(
+                f"Could not align quote (score={detail.score:.1f} < threshold={threshold}): "
+                f"{chunk.quote!r}"
+            )
 
 
 def _check_texts(X: Sequence[str]) -> None:

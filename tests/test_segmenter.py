@@ -6,6 +6,7 @@ import pytest
 from pydantic import BaseModel
 
 from chunklabel import FewShotPromptSegmenter, NotFittedError, ZeroShotPromptSegmenter
+from chunklabel.alignment import AlignmentError
 from chunklabel.llm.backend import ClientBackend
 from chunklabel.llm.base import LLMBackend
 from chunklabel.segmenter import _CharNgramTfidf, _dot, map_labels
@@ -366,3 +367,42 @@ def test_client_backend_puts_examples_as_turns() -> None:
         "chunks": [{"category": "background", "quote": "Example text."}]
     }
     assert client.messages[3]["content"] == TEXT
+
+
+# --- fidelity reports ---------------------------------------------------------
+
+
+def test_predict_with_report_matches_predict_and_shows_gap() -> None:
+    seg = ZeroShotPromptSegmenter(labels=LABELS, backend=MockBackend(GOOD))
+    segmentations, [report] = seg.predict_with_report([TEXT])
+    assert segmentations == seg.predict([TEXT])
+    # "Despite the setbacks, " is not quoted: reported, though the segments cover it.
+    assert report.gap_coverage > 0
+    assert report.n_quotes == 3 and report.n_exact == 3
+    assert "".join(TEXT[s:e] for s, e, _ in segmentations[0]) == TEXT
+
+
+def test_predict_with_report_never_raises_on_alignment_errors() -> None:
+    chunks = [GOOD[0], RawChunk("result", "completely unrelated text that will never match")]
+    seg = ZeroShotPromptSegmenter(labels=LABELS, backend=MockBackend(chunks))
+    with pytest.raises(AlignmentError):
+        seg.predict([TEXT])
+    [segments], [report] = seg.predict_with_report([TEXT])
+    assert report.n_unaligned == 1
+    assert [label for _, _, label in segments] == ["background"]
+
+
+def test_fit_reports_for_both_fit_paths() -> None:
+    client = NormalizerClient({})
+    seg = ZeroShotPromptSegmenter(client=client, backend=MockBackend(GOOD, free=FREE))
+    assert len(seg.fit([TEXT, TEXT]).fit_reports_) == 2
+    seg = ZeroShotPromptSegmenter(labels=LABELS, backend=MockBackend(GOOD))
+    [report] = seg.fit([TEXT]).fit_reports_
+    assert report.gap_coverage > 0
+
+
+def test_fewshot_predict_with_report() -> None:
+    seg = FewShotPromptSegmenter(n_examples=1, backend=ExampleBackend()).fit(POOL_X, POOL_Y)
+    segmentations, [report] = seg.predict_with_report([TEXT])
+    assert segmentations == seg.predict([TEXT])
+    assert report.n_quotes == 3
