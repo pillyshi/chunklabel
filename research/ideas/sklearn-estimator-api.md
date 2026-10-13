@@ -110,24 +110,56 @@ the first supervised estimator before it becomes an issue.
 **Interface**
 
 ```python
-seg = FewShotPromptSegmenter(n_examples=3, random_state=0, client=...)
+seg = FewShotPromptSegmenter(n_examples=3, example_selection="similar", client=...)
 seg.fit(X_train, y_train)      # y: list of segmentations, or None for unlabeled texts
 seg.predict(X_test)            # list[list[tuple[int, int, str]]], labels from labels_
 ```
 
-- Hyperparameters: `n_examples` (default 3), `random_state`, and the ones shared with
-  `ZeroShotPromptSegmenter` (`client`, `backend`, `fuzzy_threshold`, `on_align_error`,
-  `on_unknown_label`, `timeout`).
-- `fit(X, y)` stores:
+- Hyperparameters:
+  - `n_examples` (default 3)
+  - `example_selection`: `"random"` (default) or `"similar"`
+  - `embedding`: optional callable `list[str] -> list[list[float]]`, used by `"similar"`
+  - `random_state`
+  - the ones shared with `ZeroShotPromptSegmenter` (`client`, `backend`,
+    `fuzzy_threshold`, `on_align_error`, `on_unknown_label`, `timeout`)
+- `fit(X, y)` makes no LLM call. It checks `y` and stores:
   - `labels_`: sorted labels that occur in `y`.
-  - `examples_`: the chosen `(text, segmentation)` pairs.
-- `fit` makes no LLM call. It only checks `y` and chooses examples.
-- `predict(X)`: the same prompt as the given-label-set mode (label set listed, schema
-  enum), plus the examples. Then the shared steps: closest-label mapping, alignment,
-  and gaps joined to the preceding segment.
+  - `example_pool_`: every labeled `(text, segmentation)` pair.
+  - for `"similar"`, the pool's vectors (and the IDF table for the built-in
+    similarity).
+- `predict(X)` chooses examples from the pool for each text, then uses the same prompt
+  as the given-label-set mode (label set listed, schema enum) plus the examples. The
+  shared steps follow: closest-label mapping, alignment, and gaps joined to the
+  preceding segment.
 - `predict` before `fit` raises `NotFittedError`. This is a chunklabel class that
   subclasses `ValueError` and `AttributeError`, as scikit-learn's does, so it needs no
   scikit-learn import. `ZeroShotPromptSegmenter` should raise it too.
+
+**Decision (2026-10-13): example selection is a hyperparameter, not a separate class**
+
+Choosing examples similar to the input (retrieval of in-context examples) changes only
+which examples go into the prompt. `y`, the prompt format, the output, and
+post-processing stay the same. It is therefore a setting of one method, like
+`KNeighborsClassifier(algorithm=...)` or `KMeans(init=...)`, and the strategies can be
+compared with the same parameter search. A separate class is warranted only when
+selection itself is learned (for example a retriever fine-tuned on `y`), because `fit`
+would then store and compute something different.
+
+**Example selection**
+
+- `"random"`: `n_examples` pairs drawn from the pool once with `random_state`. The
+  same examples are used for every input, so results are reproducible.
+- `"similar"` (in the first version): for each input, the `n_examples` most similar
+  pool texts by cosine similarity.
+  - Default similarity: TF-IDF over character 3-grams, in pure Python. This adds no
+    dependency, and it works for languages without spaces (Japanese). The IDF is fit
+    on the pool in `fit`.
+  - `embedding=...` replaces it with any embedding model, for example a
+    sentence-transformers model's `encode`. chunklabel does not choose or depend on
+    one. Pool vectors are computed once in `fit`.
+  - A pool text identical to the input is skipped, so predicting on training texts
+    does not show the model its own answer.
+  - Order: the most similar example comes last, nearest to the input.
 
 **Checking `y`**
 
@@ -136,6 +168,9 @@ seg.predict(X_test)            # list[list[tuple[int, int, str]]], labels from l
   within the text, sorted, and do not overlap.
 - Coverage is not required. Uncovered text simply does not appear in the example.
 - At least one labeled text, with at least one label.
+- `y[i] is None` is accepted and ignored in the first version, which fixes the
+  interface now. Later uses: self-training, or selection that takes unlabeled texts
+  into account.
 
 **Prompt format for examples**
 
@@ -145,35 +180,26 @@ example text. The assistant turn is the exact JSON the model must produce,
 the output format filled in, and no new prompt template is needed beyond the system
 prompt. `LLMBackend.extract_labeled_chunks` gets an optional `examples` argument.
 
-**Decisions to make (with a recommendation)**
+**Other decisions (2026-10-13)**
 
-1. *How to choose examples.* Recommended: random, seeded by `random_state`. Every label
-   is listed in the system prompt and enforced by the schema, so examples do not need
-   to cover every label. Similarity-based selection (choose the training texts closest
-   to each input) needs an embedding model or TF-IDF, and changes the prompt per
-   input. Keep it for a later option (`example_selection="similar"`).
-2. *Unlabeled texts (`y[i] is None`).* Recommended: accepted and ignored in the first
-   version, so the interface is fixed now. Possible later uses: self-training, or
-   choosing examples close to the unlabeled distribution.
-3. *Context length.* An example costs roughly twice its text length in tokens (text
-   plus quoted JSON). Recommended: no automatic truncation. Document the cost, and let
-   users lower `n_examples` or pass shorter texts. Raise a clear error if the backend
-   reports a context overflow.
-4. *Shared code.* Recommended: move the shared parameters and `_segment` /
-   `_make_backend` into a private base class used by both estimators. Keep behaviour
-   unchanged.
+- Context length: an example costs roughly twice its text length in tokens (text plus
+  quoted JSON). There is no automatic truncation. The cost is documented, and users
+  can lower `n_examples` or pass shorter texts. A context overflow from the backend
+  surfaces as an error.
+- Shared code: the shared parameters and `_segment` / `_make_backend` move into a
+  private base class used by both estimators, without changing behaviour.
 
 **Evaluation**
 
 Here `y` is a correct answer, so agreement is a real metric, not only a diagnostic.
-Examples come from the PubMed 20k RCT train split, and scores are measured on the same
-40 test abstracts. Compare with `ZeroShotPromptSegmenter` given the five roles
-(ARI 0.80–0.84, label accuracy 0.84–0.86), and vary `n_examples` (1, 3, 5). With the
-current small local models, the numbers are a smoke test of the method, not a
-performance claim. Fidelity is reported as for the other modes.
+The pool is a sample of the PubMed 20k RCT train split, and scores are measured on the
+same 40 test abstracts. Compare `"random"` and `"similar"` with `n_examples` 1, 3 and
+5, against `ZeroShotPromptSegmenter` given the five roles (ARI 0.80–0.84, label
+accuracy 0.84–0.86). With the current small local models, the numbers are a smoke test
+of the method, not a performance claim. Fidelity is reported as for the other modes.
 
-**Out of scope for the first version**: similarity-based selection, use of unlabeled
-texts, `score(X, y)`, `y` given as `list[Chunk]` or BIO tags, fine-tuning.
+**Out of scope for the first version**: learned retrievers, use of unlabeled texts,
+`score(X, y)`, `y` given as `list[Chunk]` or BIO tags, fine-tuning.
 
 ## Proposed Scope
 
@@ -190,9 +216,10 @@ texts, `score(X, y)`, `y` given as `list[Chunk]` or BIO tags, fine-tuning.
    - `labels=[...]` hyperparameter: use the given label set; `predict` works without
      `fit`.
 3. `FewShotPromptSegmenter` (first supervised method):
-   - `fit(X, y)`: takes `labels_` from `y` and selects a few `(text, segmentation)`
-     pairs as in-context examples → `examples_`. Other methods (e.g. fine-tuning) get
-     their own classes with the same interface.
+   - `fit(X, y)`: takes `labels_` from `y` and keeps the labeled pairs as an example
+     pool → `example_pool_`. `predict` chooses examples from it (random or
+     similar). Other methods (e.g. fine-tuning) get their own classes with the same
+     interface.
    - `y[i] is None` marks an unlabeled text.
    - `predict(X)`: raises `NotFittedError` if not fitted.
 4. Shared components: alignment, post-processing, `(start, end, label)` output, and a
