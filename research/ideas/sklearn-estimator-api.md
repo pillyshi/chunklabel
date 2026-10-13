@@ -102,6 +102,79 @@ the source when needed.
 - **Cost**: `fit` processes every text it receives. Users limit the cost by passing
   fewer texts; there is no built-in sampling.
 
+## Proposal (2026-10-13): `FewShotPromptSegmenter`
+
+`ZeroShotPromptSegmenter` is done (#17 given labels, #18 `fit`). This section proposes
+the first supervised estimator before it becomes an issue.
+
+**Interface**
+
+```python
+seg = FewShotPromptSegmenter(n_examples=3, random_state=0, client=...)
+seg.fit(X_train, y_train)      # y: list of segmentations, or None for unlabeled texts
+seg.predict(X_test)            # list[list[tuple[int, int, str]]], labels from labels_
+```
+
+- Hyperparameters: `n_examples` (default 3), `random_state`, and the ones shared with
+  `ZeroShotPromptSegmenter` (`client`, `backend`, `fuzzy_threshold`, `on_align_error`,
+  `on_unknown_label`, `timeout`).
+- `fit(X, y)` stores:
+  - `labels_`: sorted labels that occur in `y`.
+  - `examples_`: the chosen `(text, segmentation)` pairs.
+- `fit` makes no LLM call. It only checks `y` and chooses examples.
+- `predict(X)`: the same prompt as the given-label-set mode (label set listed, schema
+  enum), plus the examples. Then the shared steps: closest-label mapping, alignment,
+  and gaps joined to the preceding segment.
+- `predict` before `fit` raises `NotFittedError`. This is a chunklabel class that
+  subclasses `ValueError` and `AttributeError`, as scikit-learn's does, so it needs no
+  scikit-learn import. `ZeroShotPromptSegmenter` should raise it too.
+
+**Checking `y`**
+
+- `len(y) == len(X)`.
+- Each `y[i]` is `None` or a list of `(start, end, label)` triples. The triples are
+  within the text, sorted, and do not overlap.
+- Coverage is not required. Uncovered text simply does not appear in the example.
+- At least one labeled text, with at least one label.
+
+**Prompt format for examples**
+
+Each example is a user / assistant turn pair before the real text. The user turn is the
+example text. The assistant turn is the exact JSON the model must produce,
+`{"chunks": [{"category": label, "quote": text[start:end]}, ...]}`. The model sees
+the output format filled in, and no new prompt template is needed beyond the system
+prompt. `LLMBackend.extract_labeled_chunks` gets an optional `examples` argument.
+
+**Decisions to make (with a recommendation)**
+
+1. *How to choose examples.* Recommended: random, seeded by `random_state`. Every label
+   is listed in the system prompt and enforced by the schema, so examples do not need
+   to cover every label. Similarity-based selection (choose the training texts closest
+   to each input) needs an embedding model or TF-IDF, and changes the prompt per
+   input. Keep it for a later option (`example_selection="similar"`).
+2. *Unlabeled texts (`y[i] is None`).* Recommended: accepted and ignored in the first
+   version, so the interface is fixed now. Possible later uses: self-training, or
+   choosing examples close to the unlabeled distribution.
+3. *Context length.* An example costs roughly twice its text length in tokens (text
+   plus quoted JSON). Recommended: no automatic truncation. Document the cost, and let
+   users lower `n_examples` or pass shorter texts. Raise a clear error if the backend
+   reports a context overflow.
+4. *Shared code.* Recommended: move the shared parameters and `_segment` /
+   `_make_backend` into a private base class used by both estimators. Keep behaviour
+   unchanged.
+
+**Evaluation**
+
+Here `y` is a correct answer, so agreement is a real metric, not only a diagnostic.
+Examples come from the PubMed 20k RCT train split, and scores are measured on the same
+40 test abstracts. Compare with `ZeroShotPromptSegmenter` given the five roles
+(ARI 0.80–0.84, label accuracy 0.84–0.86), and vary `n_examples` (1, 3, 5). With the
+current small local models, the numbers are a smoke test of the method, not a
+performance claim. Fidelity is reported as for the other modes.
+
+**Out of scope for the first version**: similarity-based selection, use of unlabeled
+texts, `score(X, y)`, `y` given as `list[Chunk]` or BIO tags, fine-tuning.
+
 ## Proposed Scope
 
 1. Follow scikit-learn conventions without aiming for `check_estimator` compliance:
