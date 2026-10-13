@@ -1,6 +1,6 @@
 # scikit-learn style estimator API: fit(X), fit(X, y), predict(X)
 
-**Status**: Draft
+**Status**: FewShotPromptSegmenter promoted to issue #19 (2026-10-13)
 
 ## Motivation
 
