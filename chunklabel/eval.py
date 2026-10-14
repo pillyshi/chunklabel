@@ -113,6 +113,7 @@ class FidelityReport:
     gap_coverage: float  # non-whitespace characters covered by no aligned quote
     overlap_chars: int  # characters claimed by more than one aligned quote
     fuzzy_scores: list[float] = field(default_factory=list)  # every non-exact quote's score
+    n_filled_gaps: int = 0  # gaps sent back to the LLM (``fill_gaps``)
 
     @property
     def exact_rate(self) -> float:
@@ -132,7 +133,9 @@ def fidelity(raw_chunks: Sequence[RawChunk], text: str, threshold: int = 85) -> 
     return fidelity_from_details(align_detailed(list(raw_chunks), text, threshold), text)
 
 
-def fidelity_from_details(details: Sequence[AlignmentDetail], text: str) -> FidelityReport:
+def fidelity_from_details(
+    details: Sequence[AlignmentDetail], text: str, n_filled_gaps: int = 0
+) -> FidelityReport:
     """Build a FidelityReport from alignment results that were already computed."""
     spans = [d.span for d in details if d.span is not None]
 
@@ -151,6 +154,7 @@ def fidelity_from_details(details: Sequence[AlignmentDetail], text: str) -> Fide
         gap_coverage=gap / len(non_ws) if non_ws else 0.0,
         overlap_chars=sum(min(e, len(text)) - s for s, e in spans) - sum(covered),
         fuzzy_scores=[d.score for d in details if not d.exact],
+        n_filled_gaps=n_filled_gaps,
     )
 
 

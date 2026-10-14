@@ -1,0 +1,38 @@
+{
+  "n_abstracts": 40,
+  "seed": 0,
+  "rows": [
+    {
+      "model": "qwen2.5-7b",
+      "selection": "random",
+      "n_examples": 3,
+      "docs": 39,
+      "docs_filled": 13,
+      "fill_calls": 15,
+      "label_accuracy_no_fill": 0.7447784685712431,
+      "gap_coverage_no_fill": 0.13743380074953646,
+      "gap_label_accuracy_no_fill": 0.11511864406779661,
+      "label_accuracy_fill": 0.8169240540609076,
+      "gap_coverage_fill": 0.012535239629480468,
+      "gap_label_accuracy_fill": 0.6306440677966102,
+      "gap_chars": 7375,
+      "extra_seconds_per_doc": 4.871794871794871
+    },
+    {
+      "model": "qwen2.5-7b",
+      "selection": "similar",
+      "n_examples": 3,
+      "docs": 40,
+      "docs_filled": 15,
+      "fill_calls": 19,
+      "label_accuracy_no_fill": 0.7829733320218961,
+      "gap_coverage_no_fill": 0.1197998312437238,
+      "gap_label_accuracy_no_fill": 0.18006530866117246,
+      "label_accuracy_fill": 0.833105093620867,
+      "gap_coverage_fill": 0.00028174305033809165,
+      "gap_label_accuracy_fill": 0.6003731923495569,
+      "gap_chars": 6431,
+      "extra_seconds_per_doc": 4.5625
+    }
+  ]
+}

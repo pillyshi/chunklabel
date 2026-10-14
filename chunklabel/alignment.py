@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -105,3 +105,15 @@ def align(
             )
         spans.append(detail.span)
     return spans
+
+
+def raise_unaligned(
+    raw_chunks: Sequence[RawChunk], details: Sequence[AlignmentDetail], threshold: int
+) -> None:
+    """Raise like ``align(on_error="raise")`` for the first quote that did not align."""
+    for chunk, detail in zip(raw_chunks, details):
+        if detail.span is None:
+            raise AlignmentError(
+                f"Could not align quote (score={detail.score:.1f} < threshold={threshold}): "
+                f"{chunk.quote!r}"
+            )

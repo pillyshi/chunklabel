@@ -84,6 +84,7 @@ Each quote (with surrounding whitespace stripped) is located in the source text:
 ### Lenient mode
 
 - **Gaps**: the prompt asks the LLM to cover the whole text. Any part it skips, or whose quote fails to align, is filled automatically as `category="uncategorized"`. Check how often this happens with `split_with_report` (`gap_coverage`).
+- **Filling gaps** (`ChunkLabeler(fill_gaps=True)`, off by default): each skipped stretch of at least `min_gap_chars` (default 20) non-whitespace characters is sent back to the LLM, alone and once, and chunked from that answer. Only what is still skipped becomes `uncategorized`. This costs one extra call per gap, and none when nothing is skipped.
 - **Overlaps**: the earlier chunk takes priority; the later chunk's start is pushed forward
 
 ## Category normalization (offline)
@@ -142,7 +143,7 @@ segmentations = segmenter.predict(texts)
 ```
 
 - Where the backend supports it (OpenAI structured outputs, llama.cpp), the JSON schema restricts labels to the label set. Any other label is mapped to the closest allowed one (`on_unknown_label="closest"`), or dropped / rejected (`"drop"` / `"raise"`).
-- Text that no aligned quote covers joins the preceding segment, so every label comes from the label set. Check how much text that was with `predict_with_report` (see "Checking fidelity" below).
+- Text the LLM skipped is sent back to it, alone and once, with the same label set (`fill_gaps=True`, the default; gaps under `min_gap_chars=20` non-whitespace characters are not sent). What is still not covered joins the preceding segment, so every label comes from the label set. Check how much text that was with `predict_with_report` (see "Checking fidelity" below).
 - `get_params` / `set_params` follow scikit-learn conventions, so `sklearn.base.clone` works. `ChunkLabeler` is unchanged.
 - Calling `predict` before `fit`, with no `labels`, raises `chunklabel.NotFittedError` (a `ValueError` and `AttributeError`, like scikit-learn's).
 
@@ -159,6 +160,7 @@ segmentations = segmenter.predict(texts)
 - `example_selection="random"` (default) uses the same examples, drawn with `random_state`, for every text. `"similar"` picks, per text, the most similar pool texts; the most similar comes last. Similarity is TF-IDF over character 3-grams by default, which needs no extra dependency and works for text without spaces. Pass `embedding=` (a function from a list of texts to a list of vectors, such as a sentence-transformers model's `encode`) to use an embedding model instead.
 - A pool text identical to the input is never used as its example.
 - Each example costs about twice its length in prompt tokens (its text plus the expected answer), so lower `n_examples` for long texts. Nothing is truncated automatically.
+- Gap filling works as in `ZeroShotPromptSegmenter`. The fill calls get no examples, since long prompts are what make some models skip text.
 
 ## Configuration
 
@@ -193,15 +195,16 @@ for text in sample_texts:
 | `unaligned_rate` | quotes that could not be matched (dropped; their text becomes `uncategorized`) |
 | `gap_coverage` | share of the source's non-whitespace characters not covered by any quote |
 | `fuzzy_scores` | match score of every non-verbatim quote, to judge `fuzzy_threshold` |
+| `n_filled_gaps` | gaps sent back to the LLM (`fill_gaps`); the other fields count the quotes of those calls too |
 
 `split_with_report` returns the same chunks as `split`, but never raises on alignment
 errors: unaligned quotes are counted in the report instead. For a single text you can
 also call `chunklabel.eval.fidelity(raw_chunks, text)` directly.
 
 The segmenter estimators have `predict_with_report`, which returns the same report per
-text. This matters even more there: they join unquoted text to the preceding segment, so
-a segmentation always looks complete, and only `gap_coverage` shows how much the LLM
-skipped. `ZeroShotPromptSegmenter.fit` also keeps the reports of its own pass over the
+text. This matters even more there: they join text that is still unquoted after gap
+filling to the preceding segment, so a segmentation always looks complete, and only
+`gap_coverage` shows how much the LLM skipped. `ZeroShotPromptSegmenter.fit` also keeps the reports of its own pass over the
 training texts in `fit_reports_`.
 
 ```python

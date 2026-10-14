@@ -65,7 +65,7 @@ def test_gap_joins_preceding_segment() -> None:
 
 
 def test_leading_gap_joins_first_segment() -> None:
-    seg = ZeroShotPromptSegmenter(labels=LABELS, backend=MockBackend(GOOD[1:]))
+    seg = ZeroShotPromptSegmenter(labels=LABELS, backend=MockBackend(GOOD[1:]), fill_gaps=False)
     [segments] = seg.predict([TEXT])
     assert segments[0][0] == 0 and segments[0][2] == "problem"
 
@@ -79,7 +79,7 @@ def test_labels_are_passed_with_descriptions() -> None:
 
 def test_unknown_label_maps_to_closest_by_default() -> None:
     chunks = [RawChunk("Background ", GOOD[0].quote), RawChunk("results", GOOD[2].quote)]
-    seg = ZeroShotPromptSegmenter(labels=LABELS, backend=MockBackend(chunks))
+    seg = ZeroShotPromptSegmenter(labels=LABELS, backend=MockBackend(chunks), fill_gaps=False)
     [segments] = seg.predict([TEXT])
     assert [label for _, _, label in segments] == ["background", "result"]
 
@@ -94,7 +94,7 @@ def test_unknown_label_drop_and_raise() -> None:
 
 def test_every_label_is_in_the_set() -> None:
     chunks = [RawChunk("intro", GOOD[0].quote), RawChunk("issue", GOOD[1].quote)]
-    seg = ZeroShotPromptSegmenter(labels=LABELS, backend=MockBackend(chunks))
+    seg = ZeroShotPromptSegmenter(labels=LABELS, backend=MockBackend(chunks), fill_gaps=False)
     [segments] = seg.predict([TEXT])
     assert {label for _, _, label in segments} <= set(LABELS)
 
@@ -384,7 +384,7 @@ def test_predict_with_report_matches_predict_and_shows_gap() -> None:
 
 def test_predict_with_report_never_raises_on_alignment_errors() -> None:
     chunks = [GOOD[0], RawChunk("result", "completely unrelated text that will never match")]
-    seg = ZeroShotPromptSegmenter(labels=LABELS, backend=MockBackend(chunks))
+    seg = ZeroShotPromptSegmenter(labels=LABELS, backend=MockBackend(chunks), fill_gaps=False)
     with pytest.raises(AlignmentError):
         seg.predict([TEXT])
     [segments], [report] = seg.predict_with_report([TEXT])

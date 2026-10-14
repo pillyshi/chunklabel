@@ -4,12 +4,13 @@ import dataclasses
 import warnings
 from typing import Literal, Union
 
-from chunklabel.alignment import align, align_detailed
+from chunklabel.alignment import AlignmentDetail, align_detailed, raise_unaligned
 from chunklabel.eval import FidelityReport, fidelity_from_details
+from chunklabel.gapfill import fill_gaps
 from chunklabel.llm.base import LLMBackend
 from chunklabel.llm.client import BaseLLMClient
 from chunklabel.postprocess import postprocess
-from chunklabel.types import Chunk
+from chunklabel.types import Chunk, RawChunk
 
 
 class ChunkLabeler:
@@ -20,7 +21,15 @@ class ChunkLabeler:
         on_align_error: Literal["raise", "skip"] = "raise",
         timeout: float | None = 120.0,
         backend: LLMBackend | None = None,
+        fill_gaps: bool = False,
+        min_gap_chars: int = 20,
     ) -> None:
+        """
+        Args:
+            fill_gaps: Send each stretch of text that no aligned quote covers (at least
+                ``min_gap_chars`` non-whitespace characters) back to the LLM, alone and
+                once, instead of marking it ``uncategorized``.
+        """
         if backend is not None:
             self._backend = backend
         else:
@@ -41,16 +50,12 @@ class ChunkLabeler:
             self._backend = ClientBackend(_client)
         self.fuzzy_threshold = fuzzy_threshold
         self.on_align_error = on_align_error
+        self.fill_gaps = fill_gaps
+        self.min_gap_chars = min_gap_chars
 
     def split(self, text: str, mode: Literal["one_pass", "two_pass"] = "one_pass") -> list[Chunk]:
-        if mode == "two_pass":
-            raw_chunks = self._backend.extract_boundaries(text)
-            spans = align(raw_chunks, text, self.fuzzy_threshold, on_error=self.on_align_error)
-            return self._label(postprocess(raw_chunks, spans, text))
-
-        raw_chunks = self._backend.extract_chunks(text)
-        spans = align(raw_chunks, text, self.fuzzy_threshold, on_error=self.on_align_error)
-        return postprocess(raw_chunks, spans, text)
+        chunks, _ = self._split(text, mode, strict=True)
+        return chunks
 
     def split_with_report(
         self, text: str, mode: Literal["one_pass", "two_pass"] = "one_pass"
@@ -61,15 +66,32 @@ class ChunkLabeler:
         on alignment errors: quotes that cannot be aligned are counted in the report and
         dropped, as with ``on_align_error="skip"``.
         """
-        if mode == "two_pass":
-            raw_chunks = self._backend.extract_boundaries(text)
-        else:
-            raw_chunks = self._backend.extract_chunks(text)
-        details = align_detailed(raw_chunks, text, self.fuzzy_threshold)
+        return self._split(text, mode, strict=False)
+
+    def _split(
+        self, text: str, mode: Literal["one_pass", "two_pass"], strict: bool
+    ) -> tuple[list[Chunk], FidelityReport]:
+        def extract(t: str) -> list[RawChunk]:
+            if mode == "two_pass":
+                return self._backend.extract_boundaries(t)
+            return self._backend.extract_chunks(t)
+
+        raise_on_unaligned = strict and self.on_align_error == "raise"
+        raw_chunks = extract(text)
+        details: list[AlignmentDetail] = align_detailed(raw_chunks, text, self.fuzzy_threshold)
+        if raise_on_unaligned:
+            raise_unaligned(raw_chunks, details, self.fuzzy_threshold)
+        n_filled = 0
+        if self.fill_gaps:
+            raw_chunks, details, n_filled = fill_gaps(
+                raw_chunks, details, text, extract, self.fuzzy_threshold, self.min_gap_chars
+            )
+            if raise_on_unaligned:
+                raise_unaligned(raw_chunks, details, self.fuzzy_threshold)
         chunks = postprocess(raw_chunks, [d.span for d in details], text)
         if mode == "two_pass":
             chunks = self._label(chunks)
-        return chunks, fidelity_from_details(details, text)
+        return chunks, fidelity_from_details(details, text, n_filled)
 
     def _label(self, chunks: list[Chunk]) -> list[Chunk]:
         """Two-pass labeling step: ask the LLM for a category per non-whitespace chunk."""

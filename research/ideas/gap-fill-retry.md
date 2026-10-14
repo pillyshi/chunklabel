@@ -1,6 +1,6 @@
 # Fill skipped text with a second LLM call
 
-**Status**: Draft (2026-10-14). Revises the scope of issue #6.
+**Status**: Promoted to issue #6 (rewritten 2026-10-14). Implemented; results in `benchmarks/gap_fill/README.md`
 
 ## Motivation
 
